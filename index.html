@@ -536,6 +536,10 @@
     border-radius: 4px;
   }
   .modal-close:hover{ background: var(--bg-hover); color: var(--text); }
+  .modal-name{ font-weight: 700; font-size: 1.1rem; color: var(--text); padding-right: 24px; }
+  .modal-subline{ font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
+  .modal-badges{ display:flex; flex-wrap:wrap; gap: 6px; margin-top: 12px; }
+  .modal-snippet{ font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; margin-top: 12px; }
   .modal-actions{ display:flex; gap: 10px; margin-top: 22px; }
   .modal-actions .primary-btn{ align-self:auto; }
 
@@ -1546,16 +1550,16 @@ function buildCardPreview(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
+  const metaLine = [s.dynasty, role, s.realm].filter(Boolean).join(", ");
   return `
-    <div class="name">${escapeHtml(displayName(s) || "(unnamed)")}</div>
-    ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
-    <div class="card-badges" style="margin-top:12px;">
+    <div class="modal-name">${escapeHtml(displayName(s) || "(unnamed)")}</div>
+    ${metaLine ? `<div class="modal-subline">${escapeHtml(metaLine)}</div>` : ''}
+    <div class="modal-badges">
       <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
       <span class="badge ${badge.cls}">${badge.label}</span>
       ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
     </div>
-    ${s.notes ? `<div class="snippet" style="margin-top:10px;">${escapeHtml(s.notes)}</div>` : ''}
+    ${s.notes ? `<div class="modal-snippet">${escapeHtml(s.notes)}</div>` : ''}
   `;
 }
 
