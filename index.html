@@ -486,17 +486,8 @@
     transition: transform 0.1s, background 0.12s;
   }
   .match-card:hover{ background: var(--bg-hover); transform: translateY(-2px); }
-  .match-card.blocked{
-    background: var(--bg);
-    color: var(--text-muted);
-    border-left-color: var(--border);
-    cursor: not-allowed;
-    transform:none;
-  }
-  .match-card.blocked:hover{ background: var(--bg); transform:none; }
   .match-card .name{ font-weight:600; font-size:0.95rem; }
   .match-card .reason{ font-size: 0.75rem; margin-top:6px; color: var(--text-muted); }
-  .match-card.blocked .reason{ font-style: italic; }
   .selected-banner{
     background: var(--bg-elevated);
     border: 1px solid var(--accent);
@@ -1740,40 +1731,29 @@ function renderMatchmaker(){
     return describeRelation(sim.id, candidateId, parentsOf, siblingsOf, candidateGender);
   }
 
+  const simAge = normalizeAge(sim.age);
+
   const candidates = SIMS.filter(s =>
     s.id !== sim.id &&
     s.gender === oppositeGender &&
     isEligibleSingle(s) &&
     !isDeceasedSim(s) &&
-    isMatchableAge(s)
+    isMatchableAge(s) &&
+    normalizeAge(s.age) === simAge &&
+    !relationTo(s.id, s.gender)
   );
 
   if (!candidates.length){
-    grid.innerHTML = `<div class="empty-state">No eligible royals of the opposite gender are currently unmarried.</div>`;
+    grid.innerHTML = `<div class="empty-state">No eligible bachelors right now.</div>`;
     return;
   }
 
-  const simAge = normalizeAge(sim.age);
-
-  grid.innerHTML = candidates.map(c => {
-    const ageMismatch = simAge !== normalizeAge(c.age);
-    const relation = ageMismatch ? null : relationTo(c.id, c.gender);
-    const blocked = ageMismatch || !!relation;
-    let reason;
-    if (ageMismatch){
-      // Checked first: adults only pair with adults, elders only with elders.
-      reason = "Different age group, ineligible";
-    } else if (relation){
-      reason = `${relation}, ineligible`;
-    } else {
-      reason = [c.dynasty, c.realm].filter(Boolean).join(", ") || "Eligible match";
-    }
-    return `
-      <div class="match-card ${blocked ? 'blocked' : ''}" data-marry="${blocked ? '' : c.id}">
-        <div class="name">${escapeHtml(displayName(c))}</div>
-        <div class="reason">${escapeHtml(reason)}</div>
-      </div>`;
-  }).join("");
+  grid.innerHTML = candidates.map(c => `
+    <div class="match-card" data-marry="${c.id}">
+      <div class="name">${escapeHtml(displayName(c))}</div>
+      <div class="reason">${escapeHtml([c.dynasty, c.realm].filter(Boolean).join(", ") || "Eligible match")}</div>
+    </div>`
+  ).join("");
 
   grid.querySelectorAll("[data-marry]").forEach(card => {
     const targetId = card.dataset.marry;
