@@ -191,6 +191,17 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+  .dynasty-stats{ margin-top: 12px; display:flex; flex-direction:column; gap: 6px; }
+  .dynasty-stat{ display:flex; justify-content:space-between; gap: 10px; font-size: 0.78rem; }
+  .dynasty-stat label{ color: var(--text-muted); }
+  .dynasty-stat span{ color: var(--text); font-weight: 500; text-align: right; }
+  .dynasty-count{
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem;
+    color: var(--text-muted);
+  }
   .icon-btn{
     width: 26px;
     height: 26px;
@@ -558,6 +569,7 @@
     </div>
     <nav>
       <button class="nav-btn active" data-view="roster">Royals <span class="nav-count" id="nav-royals-count"></span></button>
+      <button class="nav-btn" data-view="dynasties">Dynasties <span class="nav-count" id="nav-dynasties-count"></span></button>
       <button class="nav-btn" data-view="add">Add Royal</button>
       <button class="nav-btn" data-view="match">Royal Matchmaking</button>
     </nav>
@@ -584,7 +596,25 @@
       <div id="royals-sentinel" style="height:1px;"></div>
     </section>
 
+    <!-- DYNASTIES -->
+    <section class="view" id="view-dynasties">
+      <div class="view-head">
+        <h2>Dynasties</h2>
+      </div>
+      <div class="royals-grid" id="dynasties-grid"></div>
+    </section>
+
+    <!-- DYNASTY DETAIL -->
+    <section class="view" id="view-dynasty-detail">
+      <button class="back-btn" id="dynasty-detail-back">&larr; Back to Dynasties</button>
+      <div class="view-head">
+        <h2 id="dynasty-detail-heading">Dynasty</h2>
+      </div>
+      <div class="royals-grid" id="dynasty-royals-grid"></div>
+    </section>
+
     <!-- DETAIL -->
+
     <section class="view" id="view-detail">
       <button class="back-btn" id="detail-back">&larr; Back to Royals</button>
       <div id="detail-content"></div>
@@ -790,6 +820,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     if (btn.dataset.view === "add") resetFormToAddMode();
     showView(btn.dataset.view);
     if (btn.dataset.view === "match") renderMatchmaker();
+    if (btn.dataset.view === "dynasties") renderDynasties();
   });
 });
 
@@ -804,6 +835,18 @@ function closeDetail(){
   showView("roster");
 }
 document.getElementById("detail-back").addEventListener("click", closeDetail);
+
+let selectedDynastyName = null;
+function openDynastyDetail(name){
+  selectedDynastyName = name;
+  showView("dynasty-detail");
+  renderDynastyDetail();
+}
+function closeDynastyDetail(){
+  selectedDynastyName = null;
+  showView("dynasties");
+}
+document.getElementById("dynasty-detail-back").addEventListener("click", closeDynastyDetail);
 
 let editingId = null;
 let editReturnView = "roster";
@@ -866,6 +909,8 @@ onSnapshot(simsCol, snap => {
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
   if (document.getElementById("view-detail").classList.contains("active")) renderDetail();
+  if (document.getElementById("view-dynasties").classList.contains("active")) renderDynasties();
+  if (document.getElementById("view-dynasty-detail").classList.contains("active")) renderDynastyDetail();
 }, err => {
   console.error(err);
   showToast("Connection error. Check your Firebase config.");
@@ -939,6 +984,79 @@ function ensureScrollObserver(){
   return scrollObserver;
 }
 
+// Builds one royal-card's HTML. Shared by the main Royals grid and the
+// Dynasty member list, so both look and behave identically.
+function buildRoyalCardHTML(s){
+  const isDeceased = isDeceasedSim(s);
+  const badge = maritalBadge(s);
+  const role = normalizeDynastyRole(s.dynastyRole);
+  const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
+
+  return `
+    <div class="royal-card${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
+      <div class="card-top">
+        <div class="name">
+          ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
+          </span>` : ''}
+          <span>${escapeHtml(displayName(s) || "(unnamed)")}</span>
+        </div>
+        <div class="card-menu">
+          <button class="icon-btn" data-menu-toggle="${s.id}" data-tooltip="More" aria-label="More options">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
+          </button>
+          <div class="card-menu-dropdown" data-menu="${s.id}" hidden>
+            <button data-edit="${s.id}">Edit</button>
+            <button class="danger" data-delete="${s.id}">Delete</button>
+          </div>
+        </div>
+      </div>
+      ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
+      <div class="card-badges">
+        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge ${badge.cls}">${badge.label}</span>
+        ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
+      </div>
+      ${s.notes ? `<div class="snippet">${escapeHtml(s.notes)}</div>` : ''}
+    </div>
+  `;
+}
+
+// Wires up click/keyboard/menu/edit/delete behavior for every royal-card
+// inside a container. editReturnView controls which view Save/Cancel lands
+// back on when editing from this particular container.
+function wireRoyalCards(container, editReturnView){
+  container.querySelectorAll(".royal-card").forEach(card => {
+    card.addEventListener("click", () => openDetail(card.dataset.open));
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDetail(card.dataset.open); }
+    });
+  });
+
+  container.querySelectorAll("[data-menu-toggle]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      const dropdown = container.querySelector(`.card-menu-dropdown[data-menu="${btn.dataset.menuToggle}"]`);
+      const wasHidden = dropdown.hidden;
+      container.querySelectorAll(".card-menu-dropdown").forEach(d => d.hidden = true);
+      container.querySelectorAll(".royal-card").forEach(c => c.classList.remove("menu-open"));
+      dropdown.hidden = !wasHidden;
+      if (!dropdown.hidden) btn.closest(".royal-card").classList.add("menu-open");
+    });
+  });
+  container.querySelectorAll("[data-edit]").forEach(btn => btn.addEventListener("click", e => {
+    e.stopPropagation();
+    openEditForm(btn.dataset.edit, editReturnView);
+  }));
+  container.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", async e => {
+    e.stopPropagation();
+    const s = SIMS.find(x => x.id === btn.dataset.delete);
+    if (!confirm(`Remove ${displayName(s)} from the ledger? This cannot be undone.`)) return;
+    await deleteDoc(doc(db, "sims", btn.dataset.delete));
+    showToast(`${displayName(s)} removed from the ledger.`);
+  }));
+}
+
 function renderRoster(){
   const list = document.getElementById("royals-grid");
 
@@ -983,75 +1101,83 @@ function renderRoster(){
   const hasMore = rows.length > visibleCount;
   const visibleRows = rows.slice(0, visibleCount);
 
-  list.innerHTML = visibleRows.map(s => {
-    const isDeceased = isDeceasedSim(s);
-    const badge = maritalBadge(s);
-    const role = normalizeDynastyRole(s.dynastyRole);
-    const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
-
-    return `
-    <div class="royal-card${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
-      <div class="card-top">
-        <div class="name">
-          ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
-          </span>` : ''}
-          <span>${escapeHtml(displayName(s) || "(unnamed)")}</span>
-        </div>
-        <div class="card-menu">
-          <button class="icon-btn" data-menu-toggle="${s.id}" data-tooltip="More" aria-label="More options">
-            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
-          </button>
-          <div class="card-menu-dropdown" data-menu="${s.id}" hidden>
-            <button data-edit="${s.id}">Edit</button>
-            <button class="danger" data-delete="${s.id}">Delete</button>
-          </div>
-        </div>
-      </div>
-      ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
-      <div class="card-badges">
-        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
-        <span class="badge ${badge.cls}">${badge.label}</span>
-        ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
-      </div>
-      ${s.notes ? `<div class="snippet">${escapeHtml(s.notes)}</div>` : ''}
-    </div>
-  `;
-  }).join("");
-
-  list.querySelectorAll(".royal-card").forEach(card => {
-    card.addEventListener("click", () => openDetail(card.dataset.open));
-    card.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDetail(card.dataset.open); }
-    });
-  });
-
-  list.querySelectorAll("[data-menu-toggle]").forEach(btn => {
-    btn.addEventListener("click", e => {
-      e.stopPropagation();
-      const dropdown = list.querySelector(`.card-menu-dropdown[data-menu="${btn.dataset.menuToggle}"]`);
-      const wasHidden = dropdown.hidden;
-      list.querySelectorAll(".card-menu-dropdown").forEach(d => d.hidden = true);
-      list.querySelectorAll(".royal-card").forEach(c => c.classList.remove("menu-open"));
-      dropdown.hidden = !wasHidden;
-      if (!dropdown.hidden) btn.closest(".royal-card").classList.add("menu-open");
-    });
-  });
-  list.querySelectorAll("[data-edit]").forEach(btn => btn.addEventListener("click", e => {
-    e.stopPropagation();
-    openEditForm(btn.dataset.edit, "roster");
-  }));
-  list.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", async e => {
-    e.stopPropagation();
-    const s = SIMS.find(x => x.id === btn.dataset.delete);
-    if (!confirm(`Remove ${displayName(s)} from the ledger? This cannot be undone.`)) return;
-    await deleteDoc(doc(db, "sims", btn.dataset.delete));
-    showToast(`${displayName(s)} removed from the ledger.`);
-  }));
+  list.innerHTML = visibleRows.map(buildRoyalCardHTML).join("");
+  wireRoyalCards(list, "roster");
 
   const observer = ensureScrollObserver();
   observer.disconnect();
   if (hasMore) observer.observe(document.getElementById("royals-sentinel"));
+}
+
+/* ---------------- Dynasties ---------------- */
+function renderDynasties(){
+  const container = document.getElementById("dynasties-grid");
+
+  const groups = {};
+  SIMS.forEach(s => {
+    const name = (s.dynasty || "").trim();
+    if (!name) return;
+    const key = normalizeName(name);
+    if (!groups[key]) groups[key] = { displayName: name, members: [] };
+    groups[key].members.push(s);
+  });
+  const dynastyList = Object.values(groups).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+  document.getElementById("nav-dynasties-count").textContent = `(${dynastyList.length})`;
+
+  if (!dynastyList.length){
+    container.innerHTML = `<div class="empty-state">No dynasties yet. Give a royal a Dynasty name to start one.</div>`;
+    return;
+  }
+
+  container.innerHTML = dynastyList.map(g => {
+    const founder = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Founder");
+    const head = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Head");
+    const realmCounts = {};
+    g.members.forEach(m => { if (m.realm) realmCounts[m.realm] = (realmCounts[m.realm] || 0) + 1; });
+    const realm = (founder && founder.realm) || (head && head.realm) ||
+      Object.keys(realmCounts).sort((a, b) => realmCounts[b] - realmCounts[a])[0] || "";
+    const none = '<span class="not-recorded">None recorded</span>';
+
+    return `
+    <div class="royal-card" tabindex="0" role="button" data-dynasty="${escapeHtml(g.displayName)}">
+      <div class="name">${escapeHtml(g.displayName)}</div>
+      ${realm ? `<div class="subline">${escapeHtml(realm)}</div>` : ''}
+      <div class="dynasty-stats">
+        <div class="dynasty-stat"><label>Founder</label><span>${founder ? escapeHtml(displayName(founder)) : none}</span></div>
+        <div class="dynasty-stat"><label>Head</label><span>${head ? escapeHtml(displayName(head)) : none}</span></div>
+      </div>
+      <div class="dynasty-count">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}</div>
+    </div>
+  `;
+  }).join("");
+
+  container.querySelectorAll(".royal-card").forEach(card => {
+    card.addEventListener("click", () => openDynastyDetail(card.dataset.dynasty));
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDynastyDetail(card.dataset.dynasty); }
+    });
+  });
+}
+
+function renderDynastyDetail(){
+  const container = document.getElementById("dynasty-royals-grid");
+  const heading = document.getElementById("dynasty-detail-heading");
+  if (!selectedDynastyName){
+    container.innerHTML = "";
+    return;
+  }
+  heading.textContent = selectedDynastyName;
+
+  const members = SIMS.filter(s => normalizeName(s.dynasty) === normalizeName(selectedDynastyName));
+  if (!members.length){
+    container.innerHTML = `<div class="empty-state">No royals in this dynasty anymore.</div>`;
+    return;
+  }
+  members.sort((a, b) => fullName(a).localeCompare(fullName(b)));
+
+  container.innerHTML = members.map(buildRoyalCardHTML).join("");
+  wireRoyalCards(container, "dynasty-detail");
 }
 
 document.addEventListener("click", () => {
@@ -1322,6 +1448,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       resetFormToAddMode();
       showView(returnTo);
       if (returnTo === "detail") renderDetail();
+      if (returnTo === "dynasty-detail") renderDynastyDetail();
     } else {
       payload.createdAt = serverTimestamp();
       await addDoc(simsCol, payload);
