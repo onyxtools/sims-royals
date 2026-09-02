@@ -756,12 +756,12 @@
     <section class="view" id="view-match">
       <div class="view-head">
         <h2>Royal Matchmaking</h2>
-        <p>Pick an unmarried royal to see who they may court.</p>
+        <p>Pick a debutante to see who she may court.</p>
       </div>
       <div class="match-layout">
         <div class="candidate-panel">
-          <h3 style="font-size:0.9rem;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Unmarried Royals <span class="nav-count" id="unmarried-count"></span></h3>
-          <input type="search" id="candidate-search" class="candidate-search" placeholder="Search unmarried royals…" />
+          <h3 style="font-size:0.9rem;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Debutantes <span class="nav-count" id="unmarried-count"></span></h3>
+          <input type="search" id="candidate-search" class="candidate-search" placeholder="Search debutantes…" />
           <div class="candidate-list" id="candidate-list"></div>
         </div>
         <div>
@@ -1145,20 +1145,22 @@ function renderDynasties(){
   container.innerHTML = dynastyList.map(g => {
     const founder = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Founder");
     const head = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Head");
+    const heir = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Heir");
     const realmCounts = {};
     g.members.forEach(m => { if (m.realm) realmCounts[m.realm] = (realmCounts[m.realm] || 0) + 1; });
     const realm = (founder && founder.realm) || (head && head.realm) ||
       Object.keys(realmCounts).sort((a, b) => realmCounts[b] - realmCounts[a])[0] || "";
-    const none = '<span class="not-recorded">None recorded</span>';
+
+    const statRow = (label, person) => person
+      ? `<div class="dynasty-stat"><label>${label}</label><span>${escapeHtml(displayName(person))}</span></div>`
+      : '';
+    const stats = [statRow('Founder', founder), statRow('Head', head), statRow('Heir', heir)].join('');
 
     return `
     <div class="royal-card" tabindex="0" role="button" data-dynasty="${escapeHtml(g.displayName)}">
       <div class="name">${escapeHtml(g.displayName)}</div>
       ${realm ? `<div class="subline">${escapeHtml(realm)}</div>` : ''}
-      <div class="dynasty-stats">
-        <div class="dynasty-stat"><label>Founder</label><span>${founder ? escapeHtml(displayName(founder)) : none}</span></div>
-        <div class="dynasty-stat"><label>Head</label><span>${head ? escapeHtml(displayName(head)) : none}</span></div>
-      </div>
+      ${stats ? `<div class="dynasty-stats">${stats}</div>` : ''}
       <div class="dynasty-count">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}</div>
     </div>
   `;
@@ -1676,7 +1678,7 @@ function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
   const countEl = document.getElementById("unmarried-count");
 
-  const allSingles = SIMS.filter(s => isEligibleSingle(s) && !isDeceasedSim(s) && isMatchableAge(s));
+  const allSingles = SIMS.filter(s => s.gender === "female" && isEligibleSingle(s) && !isDeceasedSim(s) && isMatchableAge(s));
   countEl.textContent = `(${allSingles.length})`;
 
   const searchTerm = document.getElementById("candidate-search").value.trim().toLowerCase();
@@ -1685,14 +1687,14 @@ function renderMatchmaker(){
     : allSingles;
 
   if (!singles.length){
-    list.innerHTML = `<div class="empty-state">${searchTerm ? 'No unmarried royals match your search.' : 'No unmarried royals.'}</div>`;
+    list.innerHTML = `<div class="empty-state">${searchTerm ? 'No debutantes match your search.' : 'No debutantes.'}</div>`;
     ensureCandidateObserver().disconnect();
   } else {
     const hasMore = singles.length > candidateVisibleCount;
     const visibleSingles = singles.slice(0, candidateVisibleCount);
     list.innerHTML = visibleSingles.map(s => `
       <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}" data-pick="${s.id}">
-        <span>${escapeHtml(displayName(s))} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
+        <span>${escapeHtml(displayName(s))}</span>
       </div>
     `).join("") + `<div id="candidate-sentinel" style="height:1px;"></div>`;
 
@@ -1720,7 +1722,7 @@ function renderMatchmaker(){
 
   banner.innerHTML = `
     <div class="selected-banner">
-      <span class="who">Matches for ${escapeHtml(displayName(sim))}</span>
+      <span class="who">Eligible Bachelors for ${escapeHtml(displayName(sim))}</span>
     </div>`;
 
   const oppositeGender = sim.gender === "male" ? "female" : "male";
