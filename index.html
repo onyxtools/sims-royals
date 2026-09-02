@@ -502,6 +502,43 @@
   }
   .toast.show{ opacity:1; transform:translateY(0); }
 
+  .modal-overlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 20px;
+    z-index: 100;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal-box{
+    position: relative;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px 26px;
+    max-width: 380px;
+    width: 100%;
+  }
+  .modal-close{
+    position:absolute;
+    top: 14px;
+    right: 14px;
+    width: 26px;
+    height: 26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+  }
+  .modal-close:hover{ background: var(--bg-hover); color: var(--text); }
+  .modal-actions{ display:flex; gap: 10px; margin-top: 22px; }
+  .modal-actions .primary-btn{ align-self:auto; }
+
   @media (max-width: 780px){
     .shell{ grid-template-columns: 1fr; }
     .sidebar{ flex-direction:row; align-items:center; padding: 16px; overflow-x:auto; }
@@ -682,6 +719,16 @@
 
 <div class="toast" id="toast"></div>
 
+<div class="modal-overlay" id="modal-overlay" hidden>
+  <div class="modal-box">
+    <button class="modal-close" id="modal-close" aria-label="Close">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3l10 10M13 3L3 13"/></svg>
+    </button>
+    <div id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
@@ -804,6 +851,9 @@ onSnapshot(simsCol, snap => {
 });
 
 function fullName(s){ return [s.firstName, s.lastName].filter(Boolean).join(" ").trim(); }
+// For display only. The Spouse/Father/Mother/Children matching system relies
+// on plain fullName() (no title), so never use this for stored field values.
+function displayName(s){ return [s.title, s.firstName, s.lastName].filter(Boolean).join(" ").trim(); }
 function normalizeName(str){ return (str || "").trim().toLowerCase(); }
 function escapeHtml(str){
   return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -905,7 +955,6 @@ function renderRoster(){
   list.innerHTML = visibleRows.map(s => {
     const isDeceased = isDeceasedSim(s);
     const badge = maritalBadge(s);
-    const displayName = [s.title, s.firstName, s.lastName].filter(Boolean).join(" ").trim();
     const role = normalizeDynastyRole(s.dynastyRole);
     const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
 
@@ -916,7 +965,7 @@ function renderRoster(){
           ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
           </span>` : ''}
-          <span>${escapeHtml(displayName || "(unnamed)")}</span>
+          <span>${escapeHtml(displayName(s) || "(unnamed)")}</span>
         </div>
         <div class="card-menu">
           <button class="icon-btn" data-menu-toggle="${s.id}" data-tooltip="More" aria-label="More options">
@@ -1336,6 +1385,51 @@ document.getElementById("candidate-search").addEventListener("input", () => {
   renderMatchmaker();
 });
 
+// Card-preview modal shown when clicking an eligible match, replacing the
+// old browser confirm() dialog with a proper look at who you're pairing up.
+function buildCardPreview(s){
+  const isDeceased = isDeceasedSim(s);
+  const badge = maritalBadge(s);
+  const role = normalizeDynastyRole(s.dynastyRole);
+  const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
+  return `
+    <div class="name">${escapeHtml(displayName(s) || "(unnamed)")}</div>
+    ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
+    <div class="card-badges" style="margin-top:12px;">
+      <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+      <span class="badge ${badge.cls}">${badge.label}</span>
+      ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
+    </div>
+    ${s.notes ? `<div class="snippet" style="margin-top:10px;">${escapeHtml(s.notes)}</div>` : ''}
+  `;
+}
+
+function closeModal(){
+  document.getElementById("modal-overlay").hidden = true;
+}
+document.getElementById("modal-close").addEventListener("click", closeModal);
+document.getElementById("modal-overlay").addEventListener("click", e => {
+  if (e.target.id === "modal-overlay") closeModal();
+});
+
+function openMatchPreview(sim, target){
+  document.getElementById("modal-body").innerHTML = buildCardPreview(target);
+  document.getElementById("modal-actions").innerHTML = `
+    <button class="primary-btn" id="modal-marry-btn">Arrange Marriage</button>
+    <button class="labeled-btn" id="modal-cancel-btn">Cancel</button>
+  `;
+  document.getElementById("modal-overlay").hidden = false;
+
+  document.getElementById("modal-marry-btn").addEventListener("click", async () => {
+    await updateDoc(doc(db, "sims", sim.id), { spouse: fullName(target), maritalStatus: "Married" });
+    await updateDoc(doc(db, "sims", target.id), { spouse: fullName(sim), maritalStatus: "Married" });
+    showToast(`${displayName(sim)} is now married to ${displayName(target)}.`);
+    selectedSimId = null;
+    closeModal();
+  });
+  document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
+}
+
 function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
   const countEl = document.getElementById("unmarried-count");
@@ -1356,7 +1450,7 @@ function renderMatchmaker(){
     const visibleSingles = singles.slice(0, candidateVisibleCount);
     list.innerHTML = visibleSingles.map(s => `
       <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}" data-pick="${s.id}">
-        <span>${escapeHtml(fullName(s))} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
+        <span>${escapeHtml(displayName(s))} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
       </div>
     `).join("") + `<div id="candidate-sentinel" style="height:1px;"></div>`;
 
@@ -1384,7 +1478,7 @@ function renderMatchmaker(){
 
   banner.innerHTML = `
     <div class="selected-banner">
-      <span class="who">Matches for ${escapeHtml(fullName(sim))}</span>
+      <span class="who">Matches for ${escapeHtml(displayName(sim))}</span>
     </div>`;
 
   const oppositeGender = sim.gender === "male" ? "female" : "male";
@@ -1411,11 +1505,11 @@ function renderMatchmaker(){
       const relation = describeRelation(sim.id, c.id, parentsOf, c.gender);
       reason = relation ? `${relation}, ineligible` : "Related, ineligible (family data unclear)";
     } else {
-      reason = c.dynasty ? c.dynasty : "Eligible match";
+      reason = [c.dynasty, c.realm].filter(Boolean).join(", ") || "Eligible match";
     }
     return `
       <div class="match-card ${blocked ? 'blocked' : ''}" data-marry="${blocked ? '' : c.id}">
-        <div class="name">${escapeHtml(fullName(c))}</div>
+        <div class="name">${escapeHtml(displayName(c))}</div>
         <div class="reason">${escapeHtml(reason)}</div>
       </div>`;
   }).join("");
@@ -1423,13 +1517,9 @@ function renderMatchmaker(){
   grid.querySelectorAll("[data-marry]").forEach(card => {
     const targetId = card.dataset.marry;
     if (!targetId) return;
-    card.addEventListener("click", async () => {
+    card.addEventListener("click", () => {
       const target = SIMS.find(s => s.id === targetId);
-      if (!confirm(`Arrange the marriage of ${fullName(sim)} and ${fullName(target)}?`)) return;
-      await updateDoc(doc(db, "sims", sim.id), { spouse: fullName(target), maritalStatus: "Married" });
-      await updateDoc(doc(db, "sims", target.id), { spouse: fullName(sim), maritalStatus: "Married" });
-      showToast(`${fullName(sim)} is now married to ${fullName(target)}.`);
-      selectedSimId = null;
+      openMatchPreview(sim, target);
     });
   });
 }
