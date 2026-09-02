@@ -102,17 +102,17 @@
   }
   .sidebar-foot span{color:var(--gold-bright);}
 
-  main{ padding: 44px 48px; max-width: 1100px; }
+  main{ padding: 44px 48px; max-width: 1150px; }
   .view{ display:none; }
   .view.active{ display:block; }
   .view-head{ margin-bottom: 30px; }
   .view-head h2{ font-size: 1.7rem; }
-  .view-head p{ color: var(--text-muted); margin-top:8px; max-width: 60ch; }
+  .view-head p{ color: var(--text-muted); margin-top:8px; max-width: 62ch; }
 
   /* Roster */
   .roster-grid{
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 16px;
   }
   .sim-card{
@@ -124,19 +124,25 @@
     border-left: 4px solid var(--gold);
     box-shadow: 0 1px 0 rgba(0,0,0,0.2);
   }
-  .sim-card.deceased{ border-left-color: var(--grey-out); filter: saturate(0.55); }
   .sim-card .name{
     font-family:'Cinzel', serif;
     font-weight:600;
     font-size: 1.05rem;
     color: var(--text-dark);
   }
+  .sim-card .subline{
+    font-size: 0.78rem;
+    color: #6b5f45;
+    margin-top:2px;
+  }
   .sim-card .meta{
     font-size: 0.8rem;
     color: #5a4f3a;
-    margin-top: 4px;
-    line-height:1.6;
+    margin-top: 10px;
+    line-height:1.75;
   }
+  .sim-card .meta .row{ display:flex; gap:6px; }
+  .sim-card .meta .row .label{ color:#8a7c58; min-width: 84px; flex-shrink:0; }
   .badge{
     display:inline-block;
     font-size: 0.68rem;
@@ -147,11 +153,10 @@
   }
   .badge.male{ background: var(--male); }
   .badge.female{ background: var(--female); }
-  .badge.status-deceased{ background: var(--grey-out); }
-  .badge.status-alive{ background: #4f7a52; }
-  .badge.spoken{ background: var(--wine); }
+  .badge.wed{ background: var(--wine); }
+  .badge.single{ background: #4f7a52; }
   .card-actions{
-    margin-top: 10px;
+    margin-top: 12px;
     display:flex;
     gap: 10px;
   }
@@ -176,7 +181,7 @@
     background: var(--ink-2);
     border: 1px solid var(--border);
     padding: 28px 30px;
-    max-width: 560px;
+    max-width: 620px;
     border-radius: 3px;
     display:flex;
     flex-direction:column;
@@ -184,6 +189,7 @@
   }
   .field{ display:flex; flex-direction:column; gap:6px; }
   .field label{ font-size: 0.8rem; color: var(--text-muted); }
+  .field .hint{ font-size: 0.72rem; color: #877ca0; }
   .field input, .field select{
     background: var(--ink-3);
     border: 1px solid var(--border);
@@ -206,6 +212,14 @@
   .primary-btn:hover{ background: var(--wine-bright); }
   .primary-btn:disabled{ background: var(--grey-out); cursor:not-allowed; }
   .form-note{ font-size: 0.78rem; color: var(--text-muted); }
+  .section-divider{
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: -2px;
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
 
   /* Matchmaker */
   .match-layout{ display:grid; grid-template-columns: 280px 1fr; gap: 30px; }
@@ -272,6 +286,7 @@
     opacity:0; transform: translateY(10px);
     transition: opacity 0.2s, transform 0.2s;
     pointer-events:none;
+    max-width: 320px;
   }
   .toast.show{ opacity:1; transform:translateY(0); }
 
@@ -282,6 +297,7 @@
     nav{ flex-direction:row; }
     main{ padding: 26px 20px; }
     .match-layout{ grid-template-columns: 1fr; }
+    .row-2{ grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -311,7 +327,7 @@
     <section class="view active" id="view-roster">
       <div class="view-head">
         <h2>The Roster</h2>
-        <p>Every sim entered into the dynasty, living or passed. Marriages and parentage are recorded here.</p>
+        <p>Every sim entered into the dynasty. Father, mother, spouse, and children are recorded by name.</p>
       </div>
       <div class="roster-grid" id="roster-grid"></div>
     </section>
@@ -320,14 +336,20 @@
     <section class="view" id="view-add">
       <div class="view-head">
         <h2>New Entry</h2>
-        <p>Record a sim into the ledger. Parentage lets the matchmaker know who not to pair.</p>
+        <p>Record a sim into the ledger. Type parent, spouse, and children names exactly as they appear elsewhere in the ledger — that's how the matchmaker recognises relatives.</p>
       </div>
       <form class="entry-form" id="sim-form">
         <div class="row-2">
           <div class="field">
-            <label for="f-name">Name</label>
-            <input id="f-name" required placeholder="e.g. Elowen Ashgrove" />
+            <label for="f-first">First name</label>
+            <input id="f-first" required placeholder="e.g. Elowen" />
           </div>
+          <div class="field">
+            <label for="f-last">Last name</label>
+            <input id="f-last" placeholder="e.g. Ashgrove" />
+          </div>
+        </div>
+        <div class="row-2">
           <div class="field">
             <label for="f-gender">Gender</label>
             <select id="f-gender">
@@ -335,36 +357,55 @@
               <option value="male">Male</option>
             </select>
           </div>
-        </div>
-        <div class="row-2">
-          <div class="field">
-            <label for="f-house">House / surname</label>
-            <input id="f-house" placeholder="e.g. Ashgrove" />
-          </div>
           <div class="field">
             <label for="f-title">Title</label>
-            <input id="f-title" placeholder="e.g. Princess, Duke, Heir" />
+            <input id="f-title" placeholder="e.g. Princess" />
           </div>
         </div>
         <div class="row-2">
           <div class="field">
-            <label for="f-mother">Mother</label>
-            <select id="f-mother"><option value="">— unknown / founder —</option></select>
+            <label for="f-dynasty">Dynasty</label>
+            <input id="f-dynasty" placeholder="e.g. House Ashgrove" />
           </div>
           <div class="field">
-            <label for="f-father">Father</label>
-            <select id="f-father"><option value="">— unknown / founder —</option></select>
+            <label for="f-dynasty-role">Dynasty role</label>
+            <input id="f-dynasty-role" placeholder="e.g. Heir, Second in line" />
           </div>
         </div>
         <div class="field">
-          <label for="f-status">Status</label>
-          <select id="f-status">
-            <option value="alive">Alive</option>
-            <option value="deceased">Deceased</option>
-          </select>
+          <label for="f-realm">Realm</label>
+          <input id="f-realm" placeholder="e.g. Aurelia" />
         </div>
+
+        <div class="section-divider">Family</div>
+        <div class="row-2">
+          <div class="field">
+            <label for="f-father">Father</label>
+            <input id="f-father" placeholder="Full name, e.g. Corwin Ashgrove" />
+          </div>
+          <div class="field">
+            <label for="f-mother">Mother</label>
+            <input id="f-mother" placeholder="Full name, e.g. Isolde Ashgrove" />
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label for="f-marital-status">Marital status</label>
+            <input id="f-marital-status" placeholder="e.g. Single, Married, Widowed" />
+          </div>
+          <div class="field">
+            <label for="f-spouse">Spouse</label>
+            <input id="f-spouse" placeholder="Full name, leave blank if single" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-children">Children</label>
+          <input id="f-children" placeholder="Comma-separated full names" />
+          <div class="hint">e.g. Rowan Ashgrove, Marisol Ashgrove</div>
+        </div>
+
         <button type="submit" class="primary-btn" id="submit-btn">Add to ledger</button>
-        <div class="form-note">Married-in sims can be added the same way — just leave mother and father blank.</div>
+        <div class="form-note">The matchmaker matches these name fields against other entries' first + last names, so keep spelling consistent across the ledger.</div>
       </form>
     </section>
 
@@ -372,7 +413,7 @@
     <section class="view" id="view-match">
       <div class="view-head">
         <h2>The Match</h2>
-        <p>Pick an unmarried sim to see who they may court. Blood relatives — up to first cousins — are greyed out automatically.</p>
+        <p>Pick an unmarried sim to see who they may court. Blood relatives — up to first cousins — are greyed out automatically, based on the Father / Mother / Children fields across the ledger.</p>
       </div>
       <div class="match-layout">
         <div>
@@ -401,20 +442,25 @@ import {
    Replace with your own project's config object
    (Firebase console → Project settings → Your apps → SDK setup)
 ================================================================ */
-  const firebaseConfig = {
-    apiKey: "AIzaSyDM6QrdL3q4bZxmjeu-ZgDcjvywoBBzHuQ",
-    authDomain: "sims-royals.firebaseapp.com",
-    projectId: "sims-royals",
-    storageBucket: "sims-royals.firebasestorage.app",
-    messagingSenderId: "1018228671062",
-    appId: "1:1018228671062:web:465959cb453c0f9cd731f7"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDM6QrdL3q4bZxmjeu-ZgDcjvywoBBzHuQ",
+  authDomain: "sims-royals.firebaseapp.com",
+  projectId: "sims-royals",
+  storageBucket: "sims-royals.firebasestorage.app",
+  messagingSenderId: "1018228671062",
+  appId: "1:1018228671062:web:465959cb453c0f9cd731f7"
+};
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const simsCol = collection(db, "sims");
 
-let SIMS = []; // live cache of all sims, [{id, name, gender, house, title, status, motherId, fatherId, spouseId}]
+/* Sim doc shape:
+   firstName, lastName, gender ('male'|'female'), title, dynasty, dynastyRole,
+   realm, father (text), mother (text), maritalStatus (text), spouse (text),
+   children (comma-separated text)
+*/
+let SIMS = [];
 
 /* ---------------- Navigation ---------------- */
 document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -428,20 +474,20 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 /* ---------------- Live data ---------------- */
-onSnapshot(query(simsCol, orderBy("name")), snap => {
+onSnapshot(query(simsCol, orderBy("firstName")), snap => {
   SIMS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   document.getElementById("conn-status").textContent = SIMS.length + " sims in the ledger";
   renderRoster();
-  populateParentSelects();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
 }, err => {
   document.getElementById("conn-status").textContent = "connection error — check firebaseConfig";
   console.error(err);
 });
 
-function simName(id){
-  const s = SIMS.find(x => x.id === id);
-  return s ? s.name : "Unknown";
+function fullName(s){ return [s.firstName, s.lastName].filter(Boolean).join(" ").trim(); }
+function normalizeName(str){ return (str || "").trim().toLowerCase(); }
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
 /* ---------------- Roster ---------------- */
@@ -451,36 +497,37 @@ function renderRoster(){
     grid.innerHTML = `<div class="empty-state">No sims yet. Use "New Entry" to found your dynasty.</div>`;
     return;
   }
-  grid.innerHTML = SIMS.map(s => `
-    <div class="sim-card ${s.status === 'deceased' ? 'deceased' : ''}">
-      <div class="name">${escapeHtml(s.name)}</div>
+  grid.innerHTML = SIMS.map(s => {
+    const isWed = !!(s.spouse && s.spouse.trim());
+    return `
+    <div class="sim-card">
+      <div class="name">${escapeHtml(fullName(s) || "(unnamed)")}</div>
+      <div class="subline">${[s.title, s.dynastyRole].filter(Boolean).map(escapeHtml).join(" · ")}</div>
       <div class="meta">
-        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
-        <span class="badge status-${s.status}">${s.status === 'deceased' ? 'Deceased' : 'Alive'}</span>
-        ${s.spouseId ? `<span class="badge spoken">Wed to ${escapeHtml(simName(s.spouseId))}</span>` : ''}
-        <br/>
-        ${s.house ? `House ${escapeHtml(s.house)}<br/>` : ''}
-        ${s.title ? `${escapeHtml(s.title)}<br/>` : ''}
-        Parents: ${s.motherId ? escapeHtml(simName(s.motherId)) : '—'} &amp; ${s.fatherId ? escapeHtml(simName(s.fatherId)) : '—'}
+        <div class="row"><span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge ${isWed ? 'wed' : 'single'}">${isWed ? 'Wed' : 'Single'}</span></div>
+        ${s.dynasty ? `<div class="row"><span class="label">Dynasty</span><span>${escapeHtml(s.dynasty)}</span></div>` : ''}
+        ${s.realm ? `<div class="row"><span class="label">Realm</span><span>${escapeHtml(s.realm)}</span></div>` : ''}
+        <div class="row"><span class="label">Father</span><span>${escapeHtml(s.father) || '—'}</span></div>
+        <div class="row"><span class="label">Mother</span><span>${escapeHtml(s.mother) || '—'}</span></div>
+        <div class="row"><span class="label">Marital status</span><span>${escapeHtml(s.maritalStatus) || '—'}</span></div>
+        ${isWed ? `<div class="row"><span class="label">Spouse</span><span>${escapeHtml(s.spouse)}</span></div>` : ''}
+        ${s.children ? `<div class="row"><span class="label">Children</span><span>${escapeHtml(s.children)}</span></div>` : ''}
       </div>
       <div class="card-actions">
-        <button data-toggle-status="${s.id}">${s.status === 'deceased' ? 'Mark alive' : 'Mark deceased'}</button>
-        ${s.spouseId ? `<button data-widow="${s.id}">Dissolve marriage</button>` : ''}
+        ${isWed ? `<button data-widow="${s.id}">Dissolve marriage</button>` : ''}
         <button data-delete="${s.id}">Remove</button>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
-  grid.querySelectorAll("[data-toggle-status]").forEach(b => b.addEventListener("click", async () => {
-    const s = SIMS.find(x => x.id === b.dataset.toggleStatus);
-    await updateDoc(doc(db, "sims", s.id), { status: s.status === "deceased" ? "alive" : "deceased" });
-  }));
   grid.querySelectorAll("[data-widow]").forEach(b => b.addEventListener("click", async () => {
     const s = SIMS.find(x => x.id === b.dataset.widow);
-    const spouse = SIMS.find(x => x.id === s.spouseId);
-    await updateDoc(doc(db, "sims", s.id), { spouseId: null });
-    if (spouse) await updateDoc(doc(db, "sims", spouse.id), { spouseId: null });
-    showToast("Marriage dissolved.");
+    const spouse = SIMS.find(x => normalizeName(fullName(x)) === normalizeName(s.spouse));
+    await updateDoc(doc(db, "sims", s.id), { spouse: "", maritalStatus: "" });
+    if (spouse) await updateDoc(doc(db, "sims", spouse.id), { spouse: "", maritalStatus: "" });
+    showToast("Marriage dissolved. Update marital status by hand if you'd like (Widowed, Divorced, etc).");
   }));
   grid.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", async () => {
     if (!confirm("Remove this sim from the ledger? This cannot be undone.")) return;
@@ -488,38 +535,29 @@ function renderRoster(){
   }));
 }
 
-function escapeHtml(str){
-  return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-
 /* ---------------- Add form ---------------- */
-function populateParentSelects(){
-  const mSel = document.getElementById("f-mother");
-  const fSel = document.getElementById("f-father");
-  const mothers = SIMS.filter(s => s.gender === "female");
-  const fathers = SIMS.filter(s => s.gender === "male");
-  mSel.innerHTML = `<option value="">— unknown / founder —</option>` + mothers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
-  fSel.innerHTML = `<option value="">— unknown / founder —</option>` + fathers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
-}
-
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("submit-btn");
   btn.disabled = true;
   const payload = {
-    name: document.getElementById("f-name").value.trim(),
+    firstName: document.getElementById("f-first").value.trim(),
+    lastName: document.getElementById("f-last").value.trim(),
     gender: document.getElementById("f-gender").value,
-    house: document.getElementById("f-house").value.trim(),
     title: document.getElementById("f-title").value.trim(),
-    motherId: document.getElementById("f-mother").value || null,
-    fatherId: document.getElementById("f-father").value || null,
-    status: document.getElementById("f-status").value,
-    spouseId: null
+    dynasty: document.getElementById("f-dynasty").value.trim(),
+    dynastyRole: document.getElementById("f-dynasty-role").value.trim(),
+    realm: document.getElementById("f-realm").value.trim(),
+    father: document.getElementById("f-father").value.trim(),
+    mother: document.getElementById("f-mother").value.trim(),
+    maritalStatus: document.getElementById("f-marital-status").value.trim(),
+    spouse: document.getElementById("f-spouse").value.trim(),
+    children: document.getElementById("f-children").value.trim()
   };
   try {
     await addDoc(simsCol, payload);
     e.target.reset();
-    showToast(`${payload.name} added to the ledger.`);
+    showToast(`${fullName(payload)} added to the ledger.`);
   } catch (err) {
     console.error(err);
     showToast("Could not save — check your Firebase config.");
@@ -531,18 +569,31 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
 /* ---------------- Matchmaker ---------------- */
 let selectedSimId = null;
 
+// Build an undirected parent<->child graph by matching the Father / Mother /
+// Children text fields against every sim's full name. Names must match
+// exactly (case-insensitive) to link correctly.
 function buildRelationGraph(){
-  // undirected adjacency of parent<->child edges
+  const byName = {};
+  SIMS.forEach(s => {
+    const key = normalizeName(fullName(s));
+    if (key) (byName[key] ||= []).push(s.id);
+  });
+
   const adj = {};
-  const addEdge = (a,b) => {
-    if (!a || !b) return;
+  const addEdge = (a, b) => {
+    if (!a || !b || a === b) return;
     (adj[a] ||= new Set()).add(b);
     (adj[b] ||= new Set()).add(a);
   };
+
   SIMS.forEach(s => {
-    addEdge(s.id, s.motherId);
-    addEdge(s.id, s.fatherId);
+    (byName[normalizeName(s.father)] || []).forEach(id => addEdge(s.id, id));
+    (byName[normalizeName(s.mother)] || []).forEach(id => addEdge(s.id, id));
+    (s.children || "").split(",").map(n => n.trim()).filter(Boolean).forEach(childName => {
+      (byName[normalizeName(childName)] || []).forEach(id => addEdge(s.id, id));
+    });
   });
+
   return adj;
 }
 
@@ -570,13 +621,13 @@ function bloodRelatives(id, adj, maxDepth = 4){
 
 function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
-  const singles = SIMS.filter(s => !s.spouseId && s.status === "alive");
+  const singles = SIMS.filter(s => !(s.spouse && s.spouse.trim()));
   if (!singles.length){
-    list.innerHTML = `<div class="empty-state">No unmarried living sims.</div>`;
+    list.innerHTML = `<div class="empty-state">No unmarried sims.</div>`;
   } else {
     list.innerHTML = singles.map(s => `
       <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}">
-        <span>${escapeHtml(s.name)} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
+        <span>${escapeHtml(fullName(s))} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
         <button data-pick="${s.id}">${s.id === selectedSimId ? 'Selected' : 'Select'}</button>
       </div>
     `).join("");
@@ -600,7 +651,7 @@ function renderMatchmaker(){
 
   banner.innerHTML = `
     <div class="selected-banner">
-      <span class="who">Matches for ${escapeHtml(sim.name)}</span>
+      <span class="who">Matches for ${escapeHtml(fullName(sim))}</span>
       <button data-clear style="background:none;color:var(--gold-bright);text-decoration:underline;font-size:0.85rem;">Change selection</button>
     </div>`;
   banner.querySelector("[data-clear]").addEventListener("click", () => { selectedSimId = null; renderMatchmaker(); });
@@ -612,8 +663,7 @@ function renderMatchmaker(){
   const candidates = SIMS.filter(s =>
     s.id !== sim.id &&
     s.gender === oppositeGender &&
-    !s.spouseId &&
-    s.status === "alive"
+    !(s.spouse && s.spouse.trim())
   );
 
   if (!candidates.length){
@@ -625,8 +675,8 @@ function renderMatchmaker(){
     const blocked = forbidden.has(c.id);
     return `
       <div class="match-card ${blocked ? 'blocked' : ''}" data-marry="${blocked ? '' : c.id}">
-        <div class="name">${escapeHtml(c.name)}</div>
-        <div class="reason">${blocked ? 'Blood relative — ineligible' : (c.house ? 'House ' + escapeHtml(c.house) : 'Eligible match')}</div>
+        <div class="name">${escapeHtml(fullName(c))}</div>
+        <div class="reason">${blocked ? 'Blood relative — ineligible' : (c.dynasty ? c.dynasty : 'Eligible match')}</div>
       </div>`;
   }).join("");
 
@@ -634,10 +684,11 @@ function renderMatchmaker(){
     const targetId = card.dataset.marry;
     if (!targetId) return;
     card.addEventListener("click", async () => {
-      if (!confirm(`Arrange the marriage of ${sim.name} and ${simName(targetId)}?`)) return;
-      await updateDoc(doc(db, "sims", sim.id), { spouseId: targetId });
-      await updateDoc(doc(db, "sims", targetId), { spouseId: sim.id });
-      showToast(`${sim.name} is now wed to ${simName(targetId)}.`);
+      const target = SIMS.find(s => s.id === targetId);
+      if (!confirm(`Arrange the marriage of ${fullName(sim)} and ${fullName(target)}?`)) return;
+      await updateDoc(doc(db, "sims", sim.id), { spouse: fullName(target), maritalStatus: "Married" });
+      await updateDoc(doc(db, "sims", target.id), { spouse: fullName(sim), maritalStatus: "Married" });
+      showToast(`${fullName(sim)} is now wed to ${fullName(target)}.`);
       selectedSimId = null;
     });
   });
@@ -650,7 +701,7 @@ function showToast(msg){
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
 }
 </script>
 </body>
