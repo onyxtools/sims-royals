@@ -659,6 +659,11 @@
             <input id="f-mother" placeholder="Full name, e.g. Isolde Ashgrove" />
           </div>
         </div>
+        <div class="field">
+          <label for="f-siblings">Siblings</label>
+          <input id="f-siblings" placeholder="Comma-separated full names" />
+          <div class="hint">e.g. Rowan Ashgrove, Marisol Ashgrove</div>
+        </div>
         <div class="row-2">
           <div class="field">
             <label for="f-marital-status">Marital status</label>
@@ -818,6 +823,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-realm").value = s.realm || "";
   document.getElementById("f-father").value = s.father || "";
   document.getElementById("f-mother").value = s.mother || "";
+  document.getElementById("f-siblings").value = s.siblings || "";
   document.getElementById("f-marital-status").value = normalizeMaritalStatus(s.maritalStatus);
   document.getElementById("f-spouse").value = s.spouse || "";
   document.getElementById("f-children").value = s.children || "";
@@ -925,7 +931,7 @@ function renderRoster(){
     const isDeceased = isDeceasedSim(s);
     const haystack = [
       fullName(s), s.title, s.dynasty, s.dynastyRole, s.realm,
-      s.father, s.mother, s.maritalStatus, s.spouse, s.children, s.notes,
+      s.father, s.mother, s.siblings, s.maritalStatus, s.spouse, s.children, s.notes,
       s.gender, s.gender === "male" ? "male" : "female",
       isDeceased ? "deceased" : "alive living",
       isMarried ? "married wed" : "single unmarried"
@@ -1108,6 +1114,7 @@ function renderDetail(){
       <div class="detail-grid">
         ${field('Father', s.father)}
         ${field('Mother', s.mother)}
+        ${field('Siblings', s.siblings)}
         ${field('Marital status', s.maritalStatus)}
         ${field('Spouse', s.spouse)}
         ${field('Children', s.children)}
@@ -1122,53 +1129,87 @@ function renderDetail(){
 }
 
 /* ---------------- Add / Edit form ---------------- */
-// If someone already in the ledger lists this typed name as their Spouse,
-// auto-fill Spouse (reciprocal), Marital status, and Children (their kids
-// with that spouse), only into fields that are still empty, so it never
-// overwrites something already typed.
-function tryAutofillFromSpouse(){
+// Fills in Spouse, Marital status, Children, and Siblings from whatever the
+// rest of the ledger already knows about this person, but only into fields
+// that are still empty, so it never overwrites something already typed.
+function tryAutofillFamily(){
   const typedName = normalizeName(fullName({
     firstName: document.getElementById("f-first").value,
     lastName: document.getElementById("f-last").value
   }));
   if (!typedName) return;
 
-  const match = SIMS.find(s => normalizeName(s.spouse) === typedName);
-  if (!match) return;
-
   const spouseField = document.getElementById("f-spouse");
   const maritalField = document.getElementById("f-marital-status");
   const childrenField = document.getElementById("f-children");
-  let filledSomething = false;
+  const siblingsField = document.getElementById("f-siblings");
+  const fatherField = document.getElementById("f-father");
+  const motherField = document.getElementById("f-mother");
+  const filled = [];
 
-  if (!spouseField.value.trim()){
-    spouseField.value = fullName(match);
-    filledSomething = true;
-  }
-  if (maritalField.value === "Single"){
-    const theirs = normalizeMaritalStatus(match.maritalStatus);
-    maritalField.value = theirs === "Single" ? "Married" : theirs;
-    filledSomething = true;
-  }
-  if (!childrenField.value.trim()){
-    const matchName = normalizeName(fullName(match));
-    const kids = SIMS.filter(s =>
-      normalizeName(s.father) === matchName || normalizeName(s.mother) === matchName
-    ).map(s => fullName(s)).filter(Boolean);
-    if (kids.length){
-      childrenField.value = kids.join(", ");
-      filledSomething = true;
+  // Someone already lists this typed name as their Spouse: mirror Spouse,
+  // Marital status, and pull in the kids that spouse already has on record.
+  const spouseMatch = SIMS.find(s => normalizeName(s.spouse) === typedName);
+  if (spouseMatch){
+    if (!spouseField.value.trim()){
+      spouseField.value = fullName(spouseMatch);
+      filled.push("Spouse");
+    }
+    if (maritalField.value === "Single"){
+      const theirs = normalizeMaritalStatus(spouseMatch.maritalStatus);
+      maritalField.value = theirs === "Single" ? "Married" : theirs;
+    }
+    if (!childrenField.value.trim()){
+      const spouseName = normalizeName(fullName(spouseMatch));
+      const kids = SIMS.filter(s =>
+        normalizeName(s.father) === spouseName || normalizeName(s.mother) === spouseName
+      ).map(s => fullName(s)).filter(Boolean);
+      if (kids.length){
+        childrenField.value = kids.join(", ");
+        filled.push("Children");
+      }
     }
   }
 
-  if (filledSomething){
-    showToast(`Auto-filled from ${fullName(match)}'s entry. Check it over before saving.`);
+  // Other royals who share the Father and/or Mother typed here are siblings.
+  if (!siblingsField.value.trim()){
+    const fatherName = normalizeName(fatherField.value);
+    const motherName = normalizeName(motherField.value);
+    if (fatherName || motherName){
+      const sibs = SIMS.filter(s => {
+        if (normalizeName(fullName(s)) === typedName) return false;
+        const sameFather = fatherName && normalizeName(s.father) === fatherName;
+        const sameMother = motherName && normalizeName(s.mother) === motherName;
+        return sameFather || sameMother;
+      }).map(s => fullName(s)).filter(Boolean);
+      if (sibs.length){
+        siblingsField.value = sibs.join(", ");
+        filled.push("Siblings");
+      }
+    }
+  }
+
+  // Or someone already in the ledger lists this typed name as their sibling.
+  if (!siblingsField.value.trim()){
+    const listedBy = SIMS.filter(s =>
+      (s.siblings || "").split(",").map(n => normalizeName(n)).includes(typedName)
+    ).map(s => fullName(s)).filter(Boolean);
+    if (listedBy.length){
+      siblingsField.value = listedBy.join(", ");
+      filled.push("Siblings");
+    }
+  }
+
+  if (filled.length){
+    showToast(`Auto-filled ${filled.join(", ")} from matching entries. Check it over before saving.`);
   }
 }
 document.getElementById("f-first").addEventListener("input", () => { document.getElementById("name-duplicate-error").hidden = true; });
 document.getElementById("f-last").addEventListener("input", () => { document.getElementById("name-duplicate-error").hidden = true; });
-document.getElementById("f-first").addEventListener("blur", tryAutofillFromSpouse);
-document.getElementById("f-last").addEventListener("blur", tryAutofillFromSpouse);
+document.getElementById("f-first").addEventListener("blur", tryAutofillFamily);
+document.getElementById("f-last").addEventListener("blur", tryAutofillFamily);
+document.getElementById("f-father").addEventListener("blur", tryAutofillFamily);
+document.getElementById("f-mother").addEventListener("blur", tryAutofillFamily);
 
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -1200,6 +1241,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     realm: document.getElementById("f-realm").value.trim(),
     father: document.getElementById("f-father").value.trim(),
     mother: document.getElementById("f-mother").value.trim(),
+    siblings: document.getElementById("f-siblings").value.trim(),
     maritalStatus: document.getElementById("f-marital-status").value,
     spouse: document.getElementById("f-spouse").value.trim(),
     children: document.getElementById("f-children").value.trim(),
@@ -1253,9 +1295,35 @@ function buildRelationGraph(){
     (s.children || "").split(",").map(n => n.trim()).filter(Boolean).forEach(childName => {
       (byName[normalizeName(childName)] || []).forEach(id => addEdge(s.id, id));
     });
+    (s.siblings || "").split(",").map(n => n.trim()).filter(Boolean).forEach(sibName => {
+      (byName[normalizeName(sibName)] || []).forEach(id => addEdge(s.id, id));
+    });
   });
 
   return adj;
+}
+
+// Direct sibling lookups (from the Siblings field alone) so a blocked pair
+// can be labeled "Sister"/"Brother" even when there's no shared Father or
+// Mother on record to trace it through.
+function buildSiblingMap(){
+  const byName = {};
+  SIMS.forEach(s => {
+    const key = normalizeName(fullName(s));
+    if (key) (byName[key] ||= []).push(s.id);
+  });
+  const siblingsOf = {};
+  const addSib = (a, b) => {
+    if (!a || !b || a === b) return;
+    (siblingsOf[a] ||= new Set()).add(b);
+    (siblingsOf[b] ||= new Set()).add(a);
+  };
+  SIMS.forEach(s => {
+    (s.siblings || "").split(",").map(n => n.trim()).filter(Boolean).forEach(sibName => {
+      (byName[normalizeName(sibName)] || []).forEach(id => addSib(s.id, id));
+    });
+  });
+  return siblingsOf;
 }
 
 // BFS up to depth 4 covers: parents/children (1), grandparents/grandchildren
@@ -1485,6 +1553,7 @@ function renderMatchmaker(){
   const adj = buildRelationGraph();
   const forbidden = bloodRelatives(sim.id, adj);
   const parentsOf = buildParentMap();
+  const siblingsOf = buildSiblingMap();
 
   const candidates = SIMS.filter(s =>
     s.id !== sim.id &&
@@ -1502,7 +1571,12 @@ function renderMatchmaker(){
     const blocked = forbidden.has(c.id);
     let reason;
     if (blocked){
-      const relation = describeRelation(sim.id, c.id, parentsOf, c.gender);
+      let relation;
+      if (siblingsOf[sim.id] && siblingsOf[sim.id].has(c.id)){
+        relation = c.gender === "female" ? "Sister" : "Brother";
+      } else {
+        relation = describeRelation(sim.id, c.id, parentsOf, c.gender);
+      }
       reason = relation ? `${relation}, ineligible` : "Related, ineligible (family data unclear)";
     } else {
       reason = [c.dynasty, c.realm].filter(Boolean).join(", ") || "Eligible match";
