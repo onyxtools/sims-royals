@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>The Dynasty Ledger</title>
+<title>Royals</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -109,64 +109,94 @@
   .view-head h2{ font-size: 1.7rem; }
   .view-head p{ color: var(--text-muted); margin-top:8px; max-width: 62ch; }
 
-  /* Roster */
-  .roster-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+  /* Royals list */
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    gap: 10px;
+    margin-bottom: 22px;
   }
-  .sim-card{
-    background: var(--parchment);
-    color: var(--text-dark);
+  .toolbar input[type="search"], .toolbar select{
+    background: var(--ink-2);
+    border: 1px solid var(--border);
+    color: var(--text-light);
+    padding: 9px 12px;
     border-radius: 2px;
-    padding: 16px 18px;
-    position:relative;
-    border-left: 4px solid var(--gold);
-    box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    font-size: 0.85rem;
   }
-  .sim-card .name{
+  .toolbar input[type="search"]{
+    flex: 1 1 220px;
+    min-width: 180px;
+  }
+  .toolbar input[type="search"]:focus, .toolbar select:focus{ outline: 1px solid var(--gold); }
+  .toolbar select{ min-width: 150px; }
+  .result-count{
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+  .royals-list{ border-top: 1px solid var(--border); }
+  .royal-row{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 15px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .royal-row:hover{ background: rgba(184,144,47,0.06); }
+  .royal-main{ flex: 1; min-width: 0; }
+  .royal-main .name{
     font-family:'Cinzel', serif;
     font-weight:600;
-    font-size: 1.05rem;
-    color: var(--text-dark);
+    color: var(--gold-bright);
+    font-size: 1rem;
   }
-  .sim-card .subline{
+  .royal-main .subline{
     font-size: 0.78rem;
-    color: #6b5f45;
-    margin-top:2px;
+    color: var(--text-muted);
+    margin-top: 2px;
   }
-  .sim-card .meta{
-    font-size: 0.8rem;
-    color: #5a4f3a;
-    margin-top: 10px;
-    line-height:1.75;
+  .royal-main .meta-line{
+    font-size: 0.78rem;
+    color: #9088a6;
+    margin-top: 7px;
+    line-height: 1.7;
   }
-  .sim-card .meta .row{ display:flex; gap:6px; }
-  .sim-card .meta .row .label{ color:#8a7c58; min-width: 84px; flex-shrink:0; }
+  .royal-badges{
+    display:flex;
+    gap: 6px;
+    flex-shrink:0;
+    padding-top: 2px;
+  }
   .badge{
     display:inline-block;
     font-size: 0.68rem;
     padding: 2px 7px;
     border-radius: 2px;
-    margin-right:5px;
     color: white;
+    white-space: nowrap;
   }
   .badge.male{ background: var(--male); }
   .badge.female{ background: var(--female); }
-  .badge.wed{ background: var(--wine); }
+  .badge.married{ background: var(--wine); }
   .badge.single{ background: #4f7a52; }
-  .card-actions{
-    margin-top: 12px;
+  .badge.deceased{ background: var(--grey-out); }
+  .royal-actions{
     display:flex;
-    gap: 10px;
+    gap: 12px;
+    flex-shrink:0;
+    align-items:flex-start;
+    padding-top: 2px;
   }
-  .card-actions button{
+  .royal-actions button{
     background:none;
-    color: var(--wine);
+    color: var(--gold-bright);
     font-size: 0.78rem;
     padding: 0;
     text-decoration: underline;
     text-underline-offset: 2px;
+    white-space: nowrap;
   }
   .empty-state{
     color: var(--text-muted);
@@ -328,7 +358,35 @@
       <div class="view-head">
         <h2>Royals</h2>
       </div>
-      <div class="roster-grid" id="roster-grid"></div>
+      <div class="toolbar">
+        <input type="search" id="royals-search" placeholder="Search by name, title, dynasty, realm…" />
+        <select id="royals-filter-gender">
+          <option value="">All genders</option>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+        <select id="royals-filter-status">
+          <option value="">All statuses</option>
+          <option value="married">Married</option>
+          <option value="single">Single</option>
+        </select>
+        <select id="royals-filter-life">
+          <option value="">Living &amp; deceased</option>
+          <option value="alive">Living</option>
+          <option value="deceased">Deceased</option>
+        </select>
+        <select id="royals-filter-dynasty">
+          <option value="">All dynasties</option>
+        </select>
+        <select id="royals-sort">
+          <option value="name-asc">Name (A–Z)</option>
+          <option value="name-desc">Name (Z–A)</option>
+          <option value="dynasty">Dynasty</option>
+          <option value="realm">Realm</option>
+        </select>
+      </div>
+      <div class="result-count" id="royals-count"></div>
+      <div class="royals-list" id="royals-list"></div>
     </section>
 
     <!-- ADD -->
@@ -357,9 +415,16 @@
             </select>
           </div>
           <div class="field">
-            <label for="f-title">Title</label>
-            <input id="f-title" placeholder="e.g. Princess" />
+            <label for="f-status">Status</label>
+            <select id="f-status">
+              <option value="alive">Alive</option>
+              <option value="deceased">Deceased</option>
+            </select>
           </div>
+        </div>
+        <div class="field">
+          <label for="f-title">Title</label>
+          <input id="f-title" placeholder="e.g. Princess" />
         </div>
         <div class="row-2">
           <div class="field">
@@ -490,50 +555,120 @@ function escapeHtml(str){
   return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-/* ---------------- Roster ---------------- */
+/* ---------------- Royals list ---------------- */
+function populateDynastyFilter(){
+  const sel = document.getElementById("royals-filter-dynasty");
+  const current = sel.value;
+  const dynasties = [...new Set(SIMS.map(s => (s.dynasty || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+  sel.innerHTML = `<option value="">All dynasties</option>` + dynasties.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
+  if (dynasties.includes(current)) sel.value = current;
+}
+
 function renderRoster(){
-  const grid = document.getElementById("roster-grid");
+  populateDynastyFilter();
+
+  const list = document.getElementById("royals-list");
+  const countEl = document.getElementById("royals-count");
+
   if (!SIMS.length){
-    grid.innerHTML = `<div class="empty-state">No sims yet. Use "New Entry" to found your dynasty.</div>`;
+    countEl.textContent = "";
+    list.innerHTML = `<div class="empty-state">No royals yet. Use "Add Royal" to found your dynasty.</div>`;
     return;
   }
-  grid.innerHTML = SIMS.map(s => {
-    const isWed = !!(s.spouse && s.spouse.trim());
+
+  const searchTerm = document.getElementById("royals-search").value.trim().toLowerCase();
+  const genderFilter = document.getElementById("royals-filter-gender").value;
+  const statusFilter = document.getElementById("royals-filter-status").value;
+  const lifeFilter = document.getElementById("royals-filter-life").value;
+  const dynastyFilter = document.getElementById("royals-filter-dynasty").value;
+  const sortBy = document.getElementById("royals-sort").value;
+
+  let rows = SIMS.filter(s => {
+    const isMarried = !!(s.spouse && s.spouse.trim());
+    const isDeceased = s.status === "deceased";
+    if (genderFilter && s.gender !== genderFilter) return false;
+    if (statusFilter === "married" && !isMarried) return false;
+    if (statusFilter === "single" && isMarried) return false;
+    if (lifeFilter === "alive" && isDeceased) return false;
+    if (lifeFilter === "deceased" && !isDeceased) return false;
+    if (dynastyFilter && (s.dynasty || "").trim() !== dynastyFilter) return false;
+    if (searchTerm){
+      const haystack = [fullName(s), s.title, s.dynasty, s.dynastyRole, s.realm].filter(Boolean).join(" ").toLowerCase();
+      if (!haystack.includes(searchTerm)) return false;
+    }
+    return true;
+  });
+
+  rows.sort((a, b) => {
+    if (sortBy === "name-desc") return fullName(b).localeCompare(fullName(a));
+    if (sortBy === "dynasty") return (a.dynasty || "").localeCompare(b.dynasty || "") || fullName(a).localeCompare(fullName(b));
+    if (sortBy === "realm") return (a.realm || "").localeCompare(b.realm || "") || fullName(a).localeCompare(fullName(b));
+    return fullName(a).localeCompare(fullName(b));
+  });
+
+  countEl.textContent = `${rows.length} of ${SIMS.length} royals`;
+
+  if (!rows.length){
+    list.innerHTML = `<div class="empty-state">No royals match your search or filters.</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(s => {
+    const isMarried = !!(s.spouse && s.spouse.trim());
+    const isDeceased = s.status === "deceased";
+    const subline = [s.title, s.dynastyRole].filter(Boolean).join(" · ");
+    const metaParts = [];
+    if (s.dynasty) metaParts.push(`Dynasty: ${escapeHtml(s.dynasty)}`);
+    if (s.realm) metaParts.push(`Realm: ${escapeHtml(s.realm)}`);
+    metaParts.push(`Father: ${s.father ? escapeHtml(s.father) : '—'}`);
+    metaParts.push(`Mother: ${s.mother ? escapeHtml(s.mother) : '—'}`);
+    if (s.maritalStatus) metaParts.push(`Status: ${escapeHtml(s.maritalStatus)}`);
+    if (isMarried) metaParts.push(`Spouse: ${escapeHtml(s.spouse)}`);
+    if (s.children) metaParts.push(`Children: ${escapeHtml(s.children)}`);
+
     return `
-    <div class="sim-card">
-      <div class="name">${escapeHtml(fullName(s) || "(unnamed)")}</div>
-      <div class="subline">${[s.title, s.dynastyRole].filter(Boolean).map(escapeHtml).join(" · ")}</div>
-      <div class="meta">
-        <div class="row"><span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
-        <span class="badge ${isWed ? 'wed' : 'single'}">${isWed ? 'Wed' : 'Single'}</span></div>
-        ${s.dynasty ? `<div class="row"><span class="label">Dynasty</span><span>${escapeHtml(s.dynasty)}</span></div>` : ''}
-        ${s.realm ? `<div class="row"><span class="label">Realm</span><span>${escapeHtml(s.realm)}</span></div>` : ''}
-        <div class="row"><span class="label">Father</span><span>${escapeHtml(s.father) || '—'}</span></div>
-        <div class="row"><span class="label">Mother</span><span>${escapeHtml(s.mother) || '—'}</span></div>
-        <div class="row"><span class="label">Marital status</span><span>${escapeHtml(s.maritalStatus) || '—'}</span></div>
-        ${isWed ? `<div class="row"><span class="label">Spouse</span><span>${escapeHtml(s.spouse)}</span></div>` : ''}
-        ${s.children ? `<div class="row"><span class="label">Children</span><span>${escapeHtml(s.children)}</span></div>` : ''}
+    <div class="royal-row">
+      <div class="royal-main">
+        <div class="name">${escapeHtml(fullName(s) || "(unnamed)")}</div>
+        ${subline ? `<div class="subline">${escapeHtml(subline)}</div>` : ''}
+        <div class="meta-line">${metaParts.join(" &nbsp;·&nbsp; ")}</div>
       </div>
-      <div class="card-actions">
-        ${isWed ? `<button data-widow="${s.id}">Dissolve marriage</button>` : ''}
+      <div class="royal-badges">
+        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge ${isMarried ? 'married' : 'single'}">${isMarried ? 'Married' : 'Single'}</span>
+        ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
+      </div>
+      <div class="royal-actions">
+        <button data-toggle-life="${s.id}">${isDeceased ? 'Mark living' : 'Mark deceased'}</button>
+        ${isMarried ? `<button data-widow="${s.id}">Dissolve marriage</button>` : ''}
         <button data-delete="${s.id}">Remove</button>
       </div>
     </div>
   `;
   }).join("");
 
-  grid.querySelectorAll("[data-widow]").forEach(b => b.addEventListener("click", async () => {
+  list.querySelectorAll("[data-toggle-life]").forEach(b => b.addEventListener("click", async () => {
+    const s = SIMS.find(x => x.id === b.dataset.toggleLife);
+    await updateDoc(doc(db, "sims", s.id), { status: s.status === "deceased" ? "alive" : "deceased" });
+  }));
+
+  list.querySelectorAll("[data-widow]").forEach(b => b.addEventListener("click", async () => {
     const s = SIMS.find(x => x.id === b.dataset.widow);
     const spouse = SIMS.find(x => normalizeName(fullName(x)) === normalizeName(s.spouse));
     await updateDoc(doc(db, "sims", s.id), { spouse: "", maritalStatus: "" });
     if (spouse) await updateDoc(doc(db, "sims", spouse.id), { spouse: "", maritalStatus: "" });
     showToast("Marriage dissolved. Update marital status by hand if you'd like (Widowed, Divorced, etc).");
   }));
-  grid.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", async () => {
+  list.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", async () => {
     if (!confirm("Remove this sim from the ledger? This cannot be undone.")) return;
     await deleteDoc(doc(db, "sims", b.dataset.delete));
   }));
 }
+
+["royals-search"].forEach(id => document.getElementById(id).addEventListener("input", renderRoster));
+["royals-filter-gender", "royals-filter-status", "royals-filter-life", "royals-filter-dynasty", "royals-sort"].forEach(id =>
+  document.getElementById(id).addEventListener("change", renderRoster)
+);
 
 /* ---------------- Add form ---------------- */
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
@@ -544,6 +679,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     firstName: document.getElementById("f-first").value.trim(),
     lastName: document.getElementById("f-last").value.trim(),
     gender: document.getElementById("f-gender").value,
+    status: document.getElementById("f-status").value,
     title: document.getElementById("f-title").value.trim(),
     dynasty: document.getElementById("f-dynasty").value.trim(),
     dynastyRole: document.getElementById("f-dynasty-role").value.trim(),
@@ -621,7 +757,7 @@ function bloodRelatives(id, adj, maxDepth = 4){
 
 function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
-  const singles = SIMS.filter(s => !(s.spouse && s.spouse.trim()));
+  const singles = SIMS.filter(s => !(s.spouse && s.spouse.trim()) && s.status !== "deceased");
   if (!singles.length){
     list.innerHTML = `<div class="empty-state">No unmarried sims.</div>`;
   } else {
@@ -663,7 +799,8 @@ function renderMatchmaker(){
   const candidates = SIMS.filter(s =>
     s.id !== sim.id &&
     s.gender === oppositeGender &&
-    !(s.spouse && s.spouse.trim())
+    !(s.spouse && s.spouse.trim()) &&
+    s.status !== "deceased"
   );
 
   if (!candidates.length){
@@ -688,7 +825,7 @@ function renderMatchmaker(){
       if (!confirm(`Arrange the marriage of ${fullName(sim)} and ${fullName(target)}?`)) return;
       await updateDoc(doc(db, "sims", sim.id), { spouse: fullName(target), maritalStatus: "Married" });
       await updateDoc(doc(db, "sims", target.id), { spouse: fullName(sim), maritalStatus: "Married" });
-      showToast(`${fullName(sim)} is now wed to ${fullName(target)}.`);
+      showToast(`${fullName(sim)} is now married to ${fullName(target)}.`);
       selectedSimId = null;
     });
   });
