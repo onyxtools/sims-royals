@@ -310,12 +310,12 @@
         <path d="M17 2 L29 8 V17 C29 24.5 24 29.5 17 32 C10 29.5 5 24.5 5 17 V8 Z" stroke="#d9b45c" stroke-width="1.4" fill="rgba(184,144,47,0.12)"/>
         <path d="M17 9 L17 22 M11.5 15.5 L22.5 15.5" stroke="#d9b45c" stroke-width="1.4"/>
       </svg>
-      <div class="wordmark">The Dynasty Ledger<small id="house-name">Royal lineage &amp; matrimony</small></div>
+      <div class="wordmark">Dynasty</div>
     </div>
     <nav>
-      <button class="nav-btn active" data-view="roster">The Roster</button>
-      <button class="nav-btn" data-view="add">New Entry</button>
-      <button class="nav-btn" data-view="match">The Match</button>
+      <button class="nav-btn active" data-view="roster">Royals</button>
+      <button class="nav-btn" data-view="add">Add Royal</button>
+      <button class="nav-btn" data-view="match">Royal Matchmaking</button>
     </nav>
     <div class="sidebar-foot">
       Connected as <span id="conn-status">connecting…</span>
@@ -326,8 +326,7 @@
     <!-- ROSTER -->
     <section class="view active" id="view-roster">
       <div class="view-head">
-        <h2>The Roster</h2>
-        <p>Every sim entered into the dynasty. Father, mother, spouse, and children are recorded by name.</p>
+        <h2>Royals</h2>
       </div>
       <div class="roster-grid" id="roster-grid"></div>
     </section>
@@ -335,7 +334,7 @@
     <!-- ADD -->
     <section class="view" id="view-add">
       <div class="view-head">
-        <h2>New Entry</h2>
+        <h2>Add Royal</h2>
         <p>Record a sim into the ledger. Type parent, spouse, and children names exactly as they appear elsewhere in the ledger — that's how the matchmaker recognises relatives.</p>
       </div>
       <form class="entry-form" id="sim-form">
@@ -412,7 +411,7 @@
     <!-- MATCH -->
     <section class="view" id="view-match">
       <div class="view-head">
-        <h2>The Match</h2>
+        <h2>Royal Matchmaking</h2>
         <p>Pick an unmarried sim to see who they may court. Blood relatives — up to first cousins — are greyed out automatically, based on the Father / Mother / Children fields across the ledger.</p>
       </div>
       <div class="match-layout">
@@ -435,7 +434,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot, query, orderBy
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ====================== FIREBASE CONFIG ======================
@@ -474,8 +473,9 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 /* ---------------- Live data ---------------- */
-onSnapshot(query(simsCol, orderBy("firstName")), snap => {
+onSnapshot(simsCol, snap => {
   SIMS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  SIMS.sort((a, b) => fullName(a).localeCompare(fullName(b)));
   document.getElementById("conn-status").textContent = SIMS.length + " sims in the ledger";
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
