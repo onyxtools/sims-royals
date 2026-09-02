@@ -548,6 +548,7 @@
   .modal-subline{ font-size: 0.82rem; color: var(--text-muted); margin-top: 4px; }
   .modal-badges{ display:flex; flex-wrap:wrap; gap: 6px; margin-top: 12px; }
   .modal-snippet{ font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; margin-top: 12px; }
+  .dynasty-choice-options{ display:flex; flex-wrap:wrap; gap: 10px; margin-top: 16px; }
   .modal-actions{ display:flex; gap: 10px; margin-top: 22px; }
   .modal-actions .primary-btn{ align-self:auto; }
 
@@ -993,7 +994,7 @@ function buildRoyalCardHTML(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
+  const roleLine = s.dynasty ? [s.dynasty, role].filter(Boolean).join(", ") : "";
 
   return `
     <div class="royal-card${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
@@ -1235,7 +1236,7 @@ function renderDetail(){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const subline = [s.dynasty, role].filter(Boolean).join(", ");
+  const subline = s.dynasty ? [s.dynasty, role].filter(Boolean).join(", ") : "";
 
   const field = (label, value) => `
     <div class="detail-field">
@@ -1626,7 +1627,7 @@ function buildCardPreview(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const metaLine = [s.dynasty, role, s.realm].filter(Boolean).join(", ");
+  const metaLine = s.dynasty ? [s.dynasty, role, s.realm].filter(Boolean).join(", ") : (s.realm || "");
   return `
     <div class="modal-name">${escapeHtml(displayName(s) || "(unnamed)")}</div>
     ${metaLine ? `<div class="modal-subline">${escapeHtml(metaLine)}</div>` : ''}
@@ -1647,6 +1648,58 @@ document.getElementById("modal-overlay").addEventListener("click", e => {
   if (e.target.id === "modal-overlay") closeModal();
 });
 
+// Marries the two royals and, if a dynasty was decided on, updates both of
+// them to it. dynasty === undefined means "leave dynasty untouched" (used
+// when both already share the same one, so there's nothing to decide).
+async function performMarriage(sim, target, dynasty){
+  const simUpdates = { spouse: fullName(target), maritalStatus: "Married" };
+  const targetUpdates = { spouse: fullName(sim), maritalStatus: "Married" };
+  if (dynasty !== undefined){
+    simUpdates.dynasty = dynasty;
+    targetUpdates.dynasty = dynasty;
+  }
+  await updateDoc(doc(db, "sims", sim.id), simUpdates);
+  await updateDoc(doc(db, "sims", target.id), targetUpdates);
+  showToast(`${displayName(sim)} is now married to ${displayName(target)}.`);
+  selectedSimId = null;
+  closeModal();
+}
+
+// Shown instead of marrying immediately when the two royals come from
+// different dynasties, so the person can decide which one the couple keeps
+// (or start a brand new one) rather than the app silently picking for them.
+function showDynastyChoiceStep(sim, target){
+  const dynA = (sim.dynasty || "").trim();
+  const dynB = (target.dynasty || "").trim();
+
+  document.getElementById("modal-body").innerHTML = `
+    <div class="modal-name">Choose a Dynasty</div>
+    <div class="modal-subline">${escapeHtml(displayName(sim))} and ${escapeHtml(displayName(target))} come from different dynasties. Pick which one the couple will belong to.</div>
+    <div class="dynasty-choice-options">
+      <button class="labeled-btn" id="modal-dynasty-a">${dynA ? escapeHtml(dynA) : 'No dynasty'}</button>
+      <button class="labeled-btn" id="modal-dynasty-b">${dynB ? escapeHtml(dynB) : 'No dynasty'}</button>
+    </div>
+    <div class="field" style="margin-top:14px;">
+      <label for="modal-new-dynasty">New dynasty</label>
+      <input id="modal-new-dynasty" placeholder="Type a new dynasty name" />
+    </div>
+  `;
+  document.getElementById("modal-actions").innerHTML = `
+    <button class="primary-btn" id="modal-new-dynasty-confirm">Use new dynasty</button>
+    <button class="labeled-btn" id="modal-cancel-btn">Cancel</button>
+  `;
+
+  document.getElementById("modal-dynasty-a").addEventListener("click", () => performMarriage(sim, target, dynA));
+  document.getElementById("modal-dynasty-b").addEventListener("click", () => performMarriage(sim, target, dynB));
+  document.getElementById("modal-new-dynasty-confirm").addEventListener("click", () => {
+    const input = document.getElementById("modal-new-dynasty");
+    const val = input.value.trim();
+    if (!val){ input.focus(); return; }
+    performMarriage(sim, target, val);
+  });
+  document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
+}
+
 function openMatchPreview(sim, target){
   document.getElementById("modal-body").innerHTML = buildCardPreview(target);
   document.getElementById("modal-actions").innerHTML = `
@@ -1655,12 +1708,14 @@ function openMatchPreview(sim, target){
   `;
   document.getElementById("modal-overlay").hidden = false;
 
-  document.getElementById("modal-marry-btn").addEventListener("click", async () => {
-    await updateDoc(doc(db, "sims", sim.id), { spouse: fullName(target), maritalStatus: "Married" });
-    await updateDoc(doc(db, "sims", target.id), { spouse: fullName(sim), maritalStatus: "Married" });
-    showToast(`${displayName(sim)} is now married to ${displayName(target)}.`);
-    selectedSimId = null;
-    closeModal();
+  document.getElementById("modal-marry-btn").addEventListener("click", () => {
+    const dynA = normalizeName(sim.dynasty);
+    const dynB = normalizeName(target.dynasty);
+    if (dynA === dynB){
+      performMarriage(sim, target, undefined);
+    } else {
+      showDynastyChoiceStep(sim, target);
+    }
   });
   document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
 }
