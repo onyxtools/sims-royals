@@ -270,16 +270,21 @@
   .detail-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; }
   .detail-field label{ display:block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 3px; }
   .detail-field .value{ font-size: 0.9rem; color: var(--text); }
-  .detail-notes{
+  .detail-notes-input{
+    display:block;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
     font-size: 0.88rem;
     line-height: 1.7;
     color: var(--text);
-    white-space: pre-wrap;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px 18px;
+    min-height: 160px;
+    resize: vertical;
   }
+  .detail-notes-input:focus{ outline: 1px solid var(--accent); }
   .detail-actions{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 34px; }
   .labeled-btn{
     display:inline-flex;
@@ -483,7 +488,7 @@
     <section class="view" id="view-add">
       <div class="view-head">
         <h2>Add Royal</h2>
-        <p>Record a royal into the ledger. Type parent, spouse, and children names exactly as they appear elsewhere in the ledger. That's how the matchmaker recognises relatives.</p>
+        <p>Record a royal into the ledger.</p>
       </div>
       <form class="entry-form" id="sim-form">
         <div class="row-2">
@@ -558,10 +563,9 @@
           <div class="hint">e.g. Rowan Ashgrove, Marisol Ashgrove</div>
         </div>
 
-        <div class="section-divider">Story</div>
+        <div class="section-divider">Notes</div>
         <div class="field">
-          <label for="f-notes">Notes</label>
-          <textarea id="f-notes" placeholder="Backstory, personality, plot points, whatever you want to remember about them"></textarea>
+          <textarea id="f-notes" aria-label="Notes" placeholder="Backstory, personality, plot points, whatever you want to remember about them"></textarea>
         </div>
 
         <button type="submit" class="primary-btn" id="submit-btn">Add to ledger</button>
@@ -573,7 +577,7 @@
     <section class="view" id="view-match">
       <div class="view-head">
         <h2>Royal Matchmaking</h2>
-        <p>Pick an unmarried royal to see who they may court. Blood relatives, up to first cousins, are greyed out automatically, based on the Father / Mother / Children fields across the ledger.</p>
+        <p>Pick an unmarried royal to see who they may court.</p>
       </div>
       <div class="match-layout">
         <div>
@@ -800,10 +804,9 @@ function renderDetail(){
     </div>
 
     <div class="detail-section">
-      <h3>Story</h3>
-      ${s.notes
-        ? `<div class="detail-notes">${escapeHtml(s.notes)}</div>`
-        : `<div class="detail-notes" style="color:var(--text-muted);">No notes recorded yet.</div>`}
+      <h3>Notes</h3>
+      <textarea class="detail-notes-input" id="detail-notes-input" placeholder="Backstory, personality, plot points, whatever you want to remember about them">${s.notes ? escapeHtml(s.notes) : ''}</textarea>
+      <button class="labeled-btn" id="detail-notes-save" style="margin-top:10px;">Save</button>
     </div>
 
     <div class="detail-actions">
@@ -820,6 +823,12 @@ function renderDetail(){
       </button>
     </div>
   `;
+
+  container.querySelector("#detail-notes-save").addEventListener("click", async () => {
+    const value = container.querySelector("#detail-notes-input").value.trim();
+    await updateDoc(doc(db, "sims", s.id), { notes: value });
+    showToast("Notes saved.");
+  });
 
   container.querySelector("[data-toggle-life]").addEventListener("click", async () => {
     await updateDoc(doc(db, "sims", s.id), { status: s.status === "deceased" ? "alive" : "deceased" });
