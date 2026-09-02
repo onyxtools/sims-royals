@@ -796,6 +796,7 @@ document.getElementById("detail-back").addEventListener("click", closeDetail);
 
 let editingId = null;
 let editReturnView = "roster";
+let editingOriginalName = "";
 
 function resetFormToAddMode(){
   editingId = null;
@@ -812,6 +813,7 @@ function openEditForm(id, returnView){
   if (!s) return;
   editingId = id;
   editReturnView = returnView;
+  editingOriginalName = fullName(s);
 
   document.getElementById("f-first").value = s.firstName || "";
   document.getElementById("f-last").value = s.lastName || "";
@@ -1211,6 +1213,42 @@ document.getElementById("f-last").addEventListener("blur", tryAutofillFamily);
 document.getElementById("f-father").addEventListener("blur", tryAutofillFamily);
 document.getElementById("f-mother").addEventListener("blur", tryAutofillFamily);
 
+// When someone's name changes (e.g. marriage, adoption into a new house),
+// every other entry that still names them as Father/Mother/Spouse/Sibling,
+// or lists them in Children, gets updated to the new name automatically.
+function renameInList(text, oldName, newName){
+  const oldNorm = normalizeName(oldName);
+  const parts = (text || "").split(",").map(p => p.trim()).filter(Boolean);
+  let changed = false;
+  const updated = parts.map(p => {
+    if (normalizeName(p) === oldNorm){ changed = true; return newName; }
+    return p;
+  });
+  return changed ? updated.join(", ") : (text || "");
+}
+
+async function cascadeRename(excludeId, oldName, newName){
+  if (!oldName || normalizeName(oldName) === normalizeName(newName)) return 0;
+  const oldNorm = normalizeName(oldName);
+  let count = 0;
+  for (const s of SIMS){
+    if (s.id === excludeId) continue;
+    const updates = {};
+    if (normalizeName(s.father) === oldNorm) updates.father = newName;
+    if (normalizeName(s.mother) === oldNorm) updates.mother = newName;
+    if (normalizeName(s.spouse) === oldNorm) updates.spouse = newName;
+    const newChildren = renameInList(s.children, oldName, newName);
+    if (newChildren !== (s.children || "")) updates.children = newChildren;
+    const newSiblings = renameInList(s.siblings, oldName, newName);
+    if (newSiblings !== (s.siblings || "")) updates.siblings = newSiblings;
+    if (Object.keys(updates).length){
+      await updateDoc(doc(db, "sims", s.id), updates);
+      count++;
+    }
+  }
+  return count;
+}
+
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorBox = document.getElementById("name-duplicate-error");
@@ -1250,7 +1288,10 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
   try {
     if (editingId){
       await updateDoc(doc(db, "sims", editingId), payload);
-      showToast("Changes saved.");
+      const updatedCount = await cascadeRename(editingId, editingOriginalName, fullName(payload));
+      showToast(updatedCount
+        ? `Changes saved. Updated ${updatedCount} other ${updatedCount === 1 ? 'entry' : 'entries'} that referenced the old name.`
+        : "Changes saved.");
       const returnTo = editReturnView;
       resetFormToAddMode();
       showView(returnTo);
