@@ -623,9 +623,20 @@
             <input type="checkbox" id="f-deceased" />
           </label>
         </div>
-        <div class="field">
-          <label for="f-title">Title</label>
-          <input id="f-title" placeholder="e.g. Princess" />
+        <div class="row-2">
+          <div class="field">
+            <label for="f-age">Age</label>
+            <select id="f-age">
+              <option value="Child">Child</option>
+              <option value="Teenager">Teenager</option>
+              <option value="Adult" selected>Adult</option>
+              <option value="Elder">Elder</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-title">Title</label>
+            <input id="f-title" placeholder="e.g. Princess" />
+          </div>
         </div>
         <div class="row-2">
           <div class="field">
@@ -819,6 +830,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-last").value = s.lastName || "";
   document.getElementById("f-gender").value = s.gender || "female";
   document.getElementById("f-deceased").checked = isDeceasedSim(s);
+  document.getElementById("f-age").value = normalizeAge(s.age);
   document.getElementById("f-title").value = s.title || "";
   document.getElementById("f-dynasty").value = s.dynasty || "";
   document.getElementById("f-dynasty-role").value = normalizeDynastyRole(s.dynastyRole);
@@ -871,6 +883,17 @@ function escapeHtml(str){
 // treated as eligible for matching just like single sims, even if the Spouse
 // field wasn't cleared out by hand.
 const DYNASTY_ROLE_OPTIONS = ["Head", "Heir", "Member", "Outcast", "Founder"];
+
+const AGE_OPTIONS = ["Child", "Teenager", "Adult", "Elder"];
+function normalizeAge(text){
+  const match = AGE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
+  return match || "Adult";
+}
+// Children and Teenagers are never eligible for matchmaking at all.
+function isMatchableAge(s){
+  const age = normalizeAge(s.age);
+  return age === "Adult" || age === "Elder";
+}
 function normalizeDynastyRole(text){
   const match = DYNASTY_ROLE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Member";
@@ -932,7 +955,7 @@ function renderRoster(){
     const isMarried = !!(s.spouse && s.spouse.trim());
     const isDeceased = isDeceasedSim(s);
     const haystack = [
-      fullName(s), s.title, s.dynasty, s.dynastyRole, s.realm,
+      fullName(s), s.title, s.age, s.dynasty, s.dynastyRole, s.realm,
       s.father, s.mother, s.siblings, s.maritalStatus, s.spouse, s.children, s.notes,
       s.gender, s.gender === "male" ? "male" : "female",
       isDeceased ? "deceased" : "alive living",
@@ -1105,6 +1128,7 @@ function renderDetail(){
       <h3>Overview</h3>
       <div class="detail-grid">
         ${field('Title', s.title)}
+        ${field('Age', s.age)}
         ${field('Dynasty', s.dynasty)}
         ${field('Dynasty role', s.dynastyRole)}
         ${field('Realm', s.realm)}
@@ -1273,6 +1297,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     lastName: document.getElementById("f-last").value.trim(),
     gender: document.getElementById("f-gender").value,
     status: document.getElementById("f-deceased").checked ? "deceased" : "alive",
+    age: document.getElementById("f-age").value,
     title: document.getElementById("f-title").value.trim(),
     dynasty: document.getElementById("f-dynasty").value.trim(),
     dynastyRole: document.getElementById("f-dynasty-role").value.trim(),
@@ -1543,7 +1568,7 @@ function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
   const countEl = document.getElementById("unmarried-count");
 
-  const allSingles = SIMS.filter(s => isEligibleSingle(s) && !isDeceasedSim(s));
+  const allSingles = SIMS.filter(s => isEligibleSingle(s) && !isDeceasedSim(s) && isMatchableAge(s));
   countEl.textContent = `(${allSingles.length})`;
 
   const searchTerm = document.getElementById("candidate-search").value.trim().toLowerCase();
@@ -1600,7 +1625,8 @@ function renderMatchmaker(){
     s.id !== sim.id &&
     s.gender === oppositeGender &&
     isEligibleSingle(s) &&
-    !isDeceasedSim(s)
+    !isDeceasedSim(s) &&
+    isMatchableAge(s)
   );
 
   if (!candidates.length){
@@ -1608,10 +1634,17 @@ function renderMatchmaker(){
     return;
   }
 
+  const simAge = normalizeAge(sim.age);
+
   grid.innerHTML = candidates.map(c => {
-    const blocked = forbidden.has(c.id);
+    const ageMismatch = simAge !== normalizeAge(c.age);
+    const familyBlocked = forbidden.has(c.id);
+    const blocked = ageMismatch || familyBlocked;
     let reason;
-    if (blocked){
+    if (ageMismatch){
+      // Checked first: adults only pair with adults, elders only with elders.
+      reason = "Different age group, ineligible";
+    } else if (familyBlocked){
       let relation;
       if (siblingsOf[sim.id] && siblingsOf[sim.id].has(c.id)){
         relation = c.gender === "female" ? "Sister" : "Brother";
