@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Royals</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23120e07'/%3E%3Cpath d='M7 23 L7 13 L12 17 L16 9 L20 17 L25 13 L25 23 Z' fill='%23ffd700'/%3E%3Ccircle cx='16' cy='9' r='2' fill='%23ffd700'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -89,15 +90,7 @@
     border-left-color: var(--accent);
     background: var(--bg-hover);
   }
-  .sidebar-foot{
-    margin-top:auto;
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    line-height:1.5;
-    border-top: 1px solid var(--border);
-    padding-top: 16px;
-  }
-  .sidebar-foot span{color:var(--text);}
+  .nav-count{ color: var(--text-muted); font-size: 0.85em; }
 
   main{ padding: 44px 48px; max-width: 1150px; }
   .view{ display:none; }
@@ -179,12 +172,8 @@
     color: var(--text-muted);
     margin-top: 2px;
   }
-  .royal-card .heir-tag{
-    font-size: 0.72rem;
-    color: var(--accent);
-    font-weight: 600;
-    margin-top: 4px;
-  }
+  .royal-card.deceased{ opacity: 0.5; }
+  .royal-card.deceased:hover{ opacity: 0.7; }
   .royal-card .card-badges{
     display:flex;
     flex-wrap: wrap;
@@ -253,6 +242,7 @@
   .badge.married{ background: rgba(62,207,142,0.14); color: var(--success); }
   .badge.single{ background: rgba(139,147,161,0.14); color: var(--text-muted); }
   .badge.deceased{ background: rgba(239,90,111,0.14); color: var(--danger); }
+  .badge.ineligible{ background: rgba(139,147,161,0.14); color: var(--text-muted); font-style: italic; }
   .empty-state{
     color: var(--text-muted);
     padding: 40px;
@@ -322,32 +312,25 @@
   .detail-field label{ display:block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 3px; }
   .detail-field .value{ font-size: 0.78rem; color: var(--text); }
   .not-recorded{ font-size: 0.7rem; font-style: italic; color: #5f5741; }
-  .detail-notes-input{
-    display:block;
-    width: 100%;
-    font-family: 'Inter', sans-serif;
+  .detail-notes-view{
     font-size: 0.88rem;
     line-height: 1.7;
     color: var(--text);
+    white-space: pre-wrap;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 16px 18px;
-    min-height: 160px;
-    resize: vertical;
   }
-  .detail-notes-input:focus{ outline: 1px solid var(--accent); }
   .deceased-check{
     display:inline-flex;
     align-items:center;
     gap: 6px;
-    margin-top: 16px;
     font-size: 0.78rem;
     color: var(--text-muted);
     cursor:pointer;
   }
   .deceased-check input[type="checkbox"]{ width: 13px; height: 13px; accent-color: var(--accent); cursor:pointer; }
-  .detail-save-row{ display:flex; justify-content:flex-end; margin-top: 34px; max-width: 640px; }
   .labeled-btn{
     display:inline-flex;
     align-items:center;
@@ -424,21 +407,36 @@
   }
 
   /* Matchmaker */
-  .match-layout{ display:grid; grid-template-columns: 280px 1fr; gap: 30px; }
-  .candidate-list{ display:flex; flex-direction:column; gap:8px; max-height: 70vh; overflow-y:auto; padding-right:4px; }
+  .match-layout{ display:grid; grid-template-columns: 280px 1fr; gap: 30px; align-items: start; }
+  .candidate-panel{
+    position: sticky;
+    top: 44px;
+    height: calc(100vh - 88px);
+    display:flex;
+    flex-direction:column;
+  }
+  .candidate-search{
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 0.82rem;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  .candidate-search:focus{ outline: 1px solid var(--accent); }
+  .candidate-list{ display:flex; flex-direction:column; gap:8px; flex: 1; overflow-y:auto; padding-right:4px; }
   .candidate-item{
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     padding: 10px 14px;
     border-radius: 5px;
     font-size: 0.9rem;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
   }
-  .candidate-item button{
-    background:none; color: var(--accent); font-size: 0.82rem;
-  }
+  .candidate-item:hover{ background: var(--bg-hover); }
   .candidate-item.selected{ border-color: var(--accent); background: var(--bg-hover); }
 
   .match-grid{
@@ -497,10 +495,10 @@
   @media (max-width: 780px){
     .shell{ grid-template-columns: 1fr; }
     .sidebar{ flex-direction:row; align-items:center; padding: 16px; overflow-x:auto; }
-    .sidebar-foot{ display:none; }
     nav{ flex-direction:row; }
     main{ padding: 26px 20px; }
     .match-layout{ grid-template-columns: 1fr; }
+    .candidate-panel{ position: static; height: 50vh; }
     .row-2{ grid-template-columns: 1fr; }
   }
 </style>
@@ -514,13 +512,10 @@
       <div class="wordmark">Dynasty</div>
     </div>
     <nav>
-      <button class="nav-btn active" data-view="roster">Royals</button>
+      <button class="nav-btn active" data-view="roster">Royals <span class="nav-count" id="nav-royals-count"></span></button>
       <button class="nav-btn" data-view="add">Add Royal</button>
       <button class="nav-btn" data-view="match">Royal Matchmaking</button>
     </nav>
-    <div class="sidebar-foot">
-      Connected as <span id="conn-status">connecting…</span>
-    </div>
   </aside>
 
   <main>
@@ -571,6 +566,12 @@
           </select>
         </div>
         <div class="field">
+          <label class="deceased-check">
+            Deceased
+            <input type="checkbox" id="f-deceased" />
+          </label>
+        </div>
+        <div class="field">
           <label for="f-title">Title</label>
           <input id="f-title" placeholder="e.g. Princess" />
         </div>
@@ -585,6 +586,8 @@
               <option value="Head">Head</option>
               <option value="Heir">Heir</option>
               <option value="Member" selected>Member</option>
+              <option value="Outcast">Outcast</option>
+              <option value="Founder">Founder</option>
             </select>
           </div>
         </div>
@@ -614,6 +617,7 @@
               <option value="Separated">Separated</option>
               <option value="Divorced">Divorced</option>
               <option value="Widowed">Widowed</option>
+              <option value="Not Eligible">Not Eligible</option>
             </select>
           </div>
           <div class="field">
@@ -647,8 +651,9 @@
         <p>Pick an unmarried royal to see who they may court.</p>
       </div>
       <div class="match-layout">
-        <div>
-          <h3 style="font-size:0.9rem;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Unmarried royals</h3>
+        <div class="candidate-panel">
+          <h3 style="font-size:0.9rem;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Unmarried Royals <span class="nav-count" id="unmarried-count"></span></h3>
+          <input type="search" id="candidate-search" class="candidate-search" placeholder="Search unmarried royals…" />
           <div class="candidate-list" id="candidate-list"></div>
         </div>
         <div>
@@ -743,6 +748,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-first").value = s.firstName || "";
   document.getElementById("f-last").value = s.lastName || "";
   document.getElementById("f-gender").value = s.gender || "female";
+  document.getElementById("f-deceased").checked = isDeceasedSim(s);
   document.getElementById("f-title").value = s.title || "";
   document.getElementById("f-dynasty").value = s.dynasty || "";
   document.getElementById("f-dynasty-role").value = normalizeDynastyRole(s.dynastyRole);
@@ -772,13 +778,13 @@ document.getElementById("cancel-edit-btn").addEventListener("click", () => {
 onSnapshot(simsCol, snap => {
   SIMS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   SIMS.sort((a, b) => fullName(a).localeCompare(fullName(b)));
-  document.getElementById("conn-status").textContent = SIMS.length + " sims in the ledger";
+  document.getElementById("nav-royals-count").textContent = `(${SIMS.length})`;
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
   if (document.getElementById("view-detail").classList.contains("active")) renderDetail();
 }, err => {
-  document.getElementById("conn-status").textContent = "connection error, check firebaseConfig";
   console.error(err);
+  showToast("Connection error. Check your Firebase config.");
 });
 
 function fullName(s){ return [s.firstName, s.lastName].filter(Boolean).join(" ").trim(); }
@@ -790,25 +796,26 @@ function escapeHtml(str){
 // Marital status is free text, but divorced/separated/widowed sims should be
 // treated as eligible for matching just like single sims, even if the Spouse
 // field wasn't cleared out by hand.
-const DYNASTY_ROLE_OPTIONS = ["Head", "Heir", "Member"];
+const DYNASTY_ROLE_OPTIONS = ["Head", "Heir", "Member", "Outcast", "Founder"];
 function normalizeDynastyRole(text){
   const match = DYNASTY_ROLE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Member";
 }
 
-const MARITAL_OPTIONS = ["Single", "Engaged", "Married", "Separated", "Divorced", "Widowed"];
+const MARITAL_OPTIONS = ["Single", "Engaged", "Married", "Separated", "Divorced", "Widowed", "Not Eligible"];
 function normalizeMaritalStatus(text){
   const match = MARITAL_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Single";
 }
 function isDeceasedSim(s){ return (s.status || "").trim().toLowerCase() === "deceased"; }
-// Eligible for matchmaking: everyone except Engaged and Married.
+// Eligible for matchmaking: everyone except Engaged, Married, and Not Eligible.
 function isEligibleSingle(s){
   const status = normalizeMaritalStatus(s.maritalStatus);
-  return status !== "Engaged" && status !== "Married";
+  return status !== "Engaged" && status !== "Married" && status !== "Not Eligible";
 }
 function maritalBadge(s){
   const status = normalizeMaritalStatus(s.maritalStatus);
+  if (status === "Not Eligible") return { label: status, cls: "ineligible" };
   const cls = (status === "Engaged" || status === "Married") ? "married" : "single";
   return { label: status, cls };
 }
@@ -878,10 +885,10 @@ function renderRoster(){
     const badge = maritalBadge(s);
     const displayName = [s.title, s.firstName, s.lastName].filter(Boolean).join(" ").trim();
     const role = normalizeDynastyRole(s.dynastyRole);
-    const roleTag = (role === "Head" || role === "Heir") ? role : null;
+    const roleLine = [s.dynasty, role].filter(Boolean).join(", ");
 
     return `
-    <div class="royal-card" tabindex="0" role="button" data-open="${s.id}">
+    <div class="royal-card${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
       <div class="card-top">
         <div class="name">
           ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
@@ -899,8 +906,7 @@ function renderRoster(){
           </div>
         </div>
       </div>
-      ${s.dynasty ? `<div class="subline">${escapeHtml(s.dynasty)}</div>` : ''}
-      ${roleTag ? `<div class="heir-tag">${roleTag}</div>` : ''}
+      ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
       <div class="card-badges">
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
         <span class="badge ${badge.cls}">${badge.label}</span>
@@ -995,10 +1001,6 @@ function renderDetail(){
           ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
         </div>
       </div>
-      <button class="labeled-btn" id="detail-edit-btn">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M11 2.5l2.5 2.5L5 13.5H2.5V11z"/></svg>
-        Edit
-      </button>
     </div>
 
     <div class="detail-section">
@@ -1009,10 +1011,6 @@ function renderDetail(){
         ${field('Dynasty role', s.dynastyRole)}
         ${field('Realm', s.realm)}
       </div>
-      <label class="deceased-check">
-        Deceased
-        <input type="checkbox" id="detail-deceased-toggle" ${isDeceased ? 'checked' : ''} />
-      </label>
     </div>
 
     <div class="detail-section">
@@ -1028,28 +1026,58 @@ function renderDetail(){
 
     <div class="detail-section">
       <h3>Notes</h3>
-      <textarea class="detail-notes-input" id="detail-notes-input" placeholder="Backstory, personality, plot points, whatever you want to remember about them">${s.notes ? escapeHtml(s.notes) : ''}</textarea>
-    </div>
-
-    <div class="detail-save-row">
-      <button class="primary-btn" id="detail-notes-save">Save</button>
+      <div class="detail-notes-view">${s.notes ? escapeHtml(s.notes) : '<span class="not-recorded">No notes</span>'}</div>
     </div>
   `;
-
-  container.querySelector("#detail-notes-save").addEventListener("click", async () => {
-    const value = container.querySelector("#detail-notes-input").value.trim();
-    await updateDoc(doc(db, "sims", s.id), { notes: value });
-    showToast("Notes saved.");
-  });
-
-  container.querySelector("#detail-edit-btn").addEventListener("click", () => openEditForm(s.id, "detail"));
-
-  container.querySelector("#detail-deceased-toggle").addEventListener("change", async (e) => {
-    await updateDoc(doc(db, "sims", s.id), { status: e.target.checked ? "deceased" : "alive" });
-  });
 }
 
 /* ---------------- Add / Edit form ---------------- */
+// If someone already in the ledger lists this typed name as their Spouse,
+// auto-fill Spouse (reciprocal), Marital status, and Children (their kids
+// with that spouse), only into fields that are still empty, so it never
+// overwrites something already typed.
+function tryAutofillFromSpouse(){
+  const typedName = normalizeName(fullName({
+    firstName: document.getElementById("f-first").value,
+    lastName: document.getElementById("f-last").value
+  }));
+  if (!typedName) return;
+
+  const match = SIMS.find(s => normalizeName(s.spouse) === typedName);
+  if (!match) return;
+
+  const spouseField = document.getElementById("f-spouse");
+  const maritalField = document.getElementById("f-marital-status");
+  const childrenField = document.getElementById("f-children");
+  let filledSomething = false;
+
+  if (!spouseField.value.trim()){
+    spouseField.value = fullName(match);
+    filledSomething = true;
+  }
+  if (maritalField.value === "Single"){
+    const theirs = normalizeMaritalStatus(match.maritalStatus);
+    maritalField.value = theirs === "Single" ? "Married" : theirs;
+    filledSomething = true;
+  }
+  if (!childrenField.value.trim()){
+    const matchName = normalizeName(fullName(match));
+    const kids = SIMS.filter(s =>
+      normalizeName(s.father) === matchName || normalizeName(s.mother) === matchName
+    ).map(s => fullName(s)).filter(Boolean);
+    if (kids.length){
+      childrenField.value = kids.join(", ");
+      filledSomething = true;
+    }
+  }
+
+  if (filledSomething){
+    showToast(`Auto-filled from ${fullName(match)}'s entry. Check it over before saving.`);
+  }
+}
+document.getElementById("f-first").addEventListener("blur", tryAutofillFromSpouse);
+document.getElementById("f-last").addEventListener("blur", tryAutofillFromSpouse);
+
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const btn = document.getElementById("submit-btn");
@@ -1058,6 +1086,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     firstName: document.getElementById("f-first").value.trim(),
     lastName: document.getElementById("f-last").value.trim(),
     gender: document.getElementById("f-gender").value,
+    status: document.getElementById("f-deceased").checked ? "deceased" : "alive",
     title: document.getElementById("f-title").value.trim(),
     dynasty: document.getElementById("f-dynasty").value.trim(),
     dynastyRole: document.getElementById("f-dynasty-role").value.trim(),
@@ -1069,14 +1098,10 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     children: document.getElementById("f-children").value.trim(),
     notes: document.getElementById("f-notes").value.trim()
   };
-  // Living status isn't part of this form: new royals start alive, and
-  // existing ones only change via the Mark as Deceased checkbox on their
-  // detail page, so edits here never touch it.
-  if (!editingId) payload.status = "alive";
   try {
     if (editingId){
       await updateDoc(doc(db, "sims", editingId), payload);
-      showToast(`${fullName(payload)} updated.`);
+      showToast("Changes saved.");
       const returnTo = editReturnView;
       resetFormToAddMode();
       showView(returnTo);
@@ -1148,22 +1173,143 @@ function bloodRelatives(id, adj, maxDepth = 4){
   return visited;
 }
 
+// Directed version of the same name-matched parent/child data: parentsOf[id]
+// is the set of that royal's parent ids. Used to work out the exact family
+// tie (grandmother, aunt, cousin, etc.) rather than just "related".
+function buildParentMap(){
+  const byName = {};
+  SIMS.forEach(s => {
+    const key = normalizeName(fullName(s));
+    if (key) (byName[key] ||= []).push(s.id);
+  });
+  const parentsOf = {};
+  const addParent = (childId, parentId) => {
+    if (!childId || !parentId || childId === parentId) return;
+    (parentsOf[childId] ||= new Set()).add(parentId);
+  };
+  SIMS.forEach(s => {
+    (byName[normalizeName(s.father)] || []).forEach(pid => addParent(s.id, pid));
+    (byName[normalizeName(s.mother)] || []).forEach(pid => addParent(s.id, pid));
+    (s.children || "").split(",").map(n => n.trim()).filter(Boolean).forEach(childName => {
+      (byName[normalizeName(childName)] || []).forEach(cid => addParent(cid, s.id));
+    });
+  });
+  return parentsOf;
+}
+
+// Distance (in parent-hops) from id up to each ancestor, id itself included at 0.
+function ancestorDistances(id, parentsOf, maxDepth = 4){
+  const dist = { [id]: 0 };
+  let frontier = [id];
+  for (let d = 1; d <= maxDepth; d++){
+    const next = [];
+    frontier.forEach(cur => {
+      (parentsOf[cur] || new Set()).forEach(p => {
+        if (!(p in dist)){ dist[p] = d; next.push(p); }
+      });
+    });
+    frontier = next;
+    if (!frontier.length) break;
+  }
+  return dist;
+}
+
+// Turns a pair of distances-to-common-ancestor into a human relation label,
+// named from the candidate's side (what the candidate IS to the selected royal).
+function relationLabel(dSel, dCand, candidateGender){
+  const f = candidateGender === "female";
+  if (dSel === 0){
+    if (dCand === 1) return f ? "Daughter" : "Son";
+    if (dCand === 2) return f ? "Granddaughter" : "Grandson";
+    if (dCand === 3) return f ? "Great-granddaughter" : "Great-grandson";
+    return "Descendant";
+  }
+  if (dCand === 0){
+    if (dSel === 1) return f ? "Mother" : "Father";
+    if (dSel === 2) return f ? "Grandmother" : "Grandfather";
+    if (dSel === 3) return f ? "Great-grandmother" : "Great-grandfather";
+    return "Ancestor";
+  }
+  if (dSel === 1 && dCand === 1) return f ? "Sister" : "Brother";
+  if (dSel === 2 && dCand === 1) return f ? "Aunt" : "Uncle";
+  if (dSel === 1 && dCand === 2) return f ? "Niece" : "Nephew";
+  if (dSel === 3 && dCand === 1) return f ? "Great-aunt" : "Great-uncle";
+  if (dSel === 1 && dCand === 3) return f ? "Great-niece" : "Great-nephew";
+  if (dSel === 2 && dCand === 2) return "Cousin";
+  if ((dSel === 2 && dCand === 3) || (dSel === 3 && dCand === 2)) return "Cousin (once removed)";
+  return null;
+}
+
+// Finds the closest common ancestor between two royals and labels the tie.
+// Returns null if the two are connected in the blood-relative graph but no
+// clean common ancestor could be resolved from the Father/Mother/Children
+// data, meaning something in the chain is missing or inconsistent.
+function describeRelation(selectedId, candidateId, parentsOf, candidateGender){
+  const aDist = ancestorDistances(selectedId, parentsOf, 4);
+  const bDist = ancestorDistances(candidateId, parentsOf, 4);
+  let best = null;
+  Object.keys(aDist).forEach(anc => {
+    if (anc in bDist){
+      const dSel = aDist[anc], dCand = bDist[anc];
+      if (dSel === 0 && dCand === 0) return;
+      const sum = dSel + dCand;
+      if (!best || sum < best.sum) best = { dSel, dCand, sum };
+    }
+  });
+  if (!best) return null;
+  return relationLabel(best.dSel, best.dCand, candidateGender);
+}
+
+const CANDIDATE_PAGE_SIZE = 30;
+let candidateVisibleCount = CANDIDATE_PAGE_SIZE;
+let candidateObserver = null;
+function ensureCandidateObserver(){
+  if (candidateObserver) return candidateObserver;
+  candidateObserver = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting){
+      candidateVisibleCount += CANDIDATE_PAGE_SIZE;
+      renderMatchmaker();
+    }
+  }, { root: document.getElementById("candidate-list"), rootMargin: "200px" });
+  return candidateObserver;
+}
+document.getElementById("candidate-search").addEventListener("input", () => {
+  candidateVisibleCount = CANDIDATE_PAGE_SIZE;
+  renderMatchmaker();
+});
+
 function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
-  const singles = SIMS.filter(s => isEligibleSingle(s) && !isDeceasedSim(s));
+  const countEl = document.getElementById("unmarried-count");
+
+  const allSingles = SIMS.filter(s => isEligibleSingle(s) && !isDeceasedSim(s));
+  countEl.textContent = `(${allSingles.length})`;
+
+  const searchTerm = document.getElementById("candidate-search").value.trim().toLowerCase();
+  const singles = searchTerm
+    ? allSingles.filter(s => [fullName(s), s.dynasty, s.realm, s.title].filter(Boolean).join(" ").toLowerCase().includes(searchTerm))
+    : allSingles;
+
   if (!singles.length){
-    list.innerHTML = `<div class="empty-state">No unmarried royals.</div>`;
+    list.innerHTML = `<div class="empty-state">${searchTerm ? 'No unmarried royals match your search.' : 'No unmarried royals.'}</div>`;
+    ensureCandidateObserver().disconnect();
   } else {
-    list.innerHTML = singles.map(s => `
-      <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}">
+    const hasMore = singles.length > candidateVisibleCount;
+    const visibleSingles = singles.slice(0, candidateVisibleCount);
+    list.innerHTML = visibleSingles.map(s => `
+      <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}" data-pick="${s.id}">
         <span>${escapeHtml(fullName(s))} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
-        <button data-pick="${s.id}">${s.id === selectedSimId ? 'Selected' : 'Select'}</button>
       </div>
-    `).join("");
-    list.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => {
-      selectedSimId = b.dataset.pick;
+    `).join("") + `<div id="candidate-sentinel" style="height:1px;"></div>`;
+
+    list.querySelectorAll("[data-pick]").forEach(item => item.addEventListener("click", () => {
+      selectedSimId = item.dataset.pick;
       renderMatchmaker();
     }));
+
+    const observer = ensureCandidateObserver();
+    observer.disconnect();
+    if (hasMore) observer.observe(document.getElementById("candidate-sentinel"));
   }
 
   const banner = document.getElementById("match-selected-banner");
@@ -1181,13 +1327,12 @@ function renderMatchmaker(){
   banner.innerHTML = `
     <div class="selected-banner">
       <span class="who">Matches for ${escapeHtml(fullName(sim))}</span>
-      <button data-clear style="background:none;color:var(--accent);font-size:0.85rem;">Change selection</button>
     </div>`;
-  banner.querySelector("[data-clear]").addEventListener("click", () => { selectedSimId = null; renderMatchmaker(); });
 
   const oppositeGender = sim.gender === "male" ? "female" : "male";
   const adj = buildRelationGraph();
   const forbidden = bloodRelatives(sim.id, adj);
+  const parentsOf = buildParentMap();
 
   const candidates = SIMS.filter(s =>
     s.id !== sim.id &&
@@ -1203,10 +1348,17 @@ function renderMatchmaker(){
 
   grid.innerHTML = candidates.map(c => {
     const blocked = forbidden.has(c.id);
+    let reason;
+    if (blocked){
+      const relation = describeRelation(sim.id, c.id, parentsOf, c.gender);
+      reason = relation ? `${relation}, ineligible` : "Related, ineligible (family data unclear)";
+    } else {
+      reason = c.dynasty ? c.dynasty : "Eligible match";
+    }
     return `
       <div class="match-card ${blocked ? 'blocked' : ''}" data-marry="${blocked ? '' : c.id}">
         <div class="name">${escapeHtml(fullName(c))}</div>
-        <div class="reason">${blocked ? 'Blood relative, ineligible' : (c.dynasty ? c.dynasty : 'Eligible match')}</div>
+        <div class="reason">${escapeHtml(reason)}</div>
       </div>`;
   }).join("");
 
