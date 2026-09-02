@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Kingdoms</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23120e07'/%3E%3Cpath d='M7 23 L7 13 L12 17 L16 9 L20 17 L25 13 L25 23 Z' fill='%23ffd700'/%3E%3Ccircle cx='16' cy='9' r='2' fill='%23ffd700'/%3E%3C/svg%3E" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M7 23 L7 13 L12 17 L16 9 L20 17 L25 13 L25 23 Z' fill='%23ffd700' stroke='%235c4a1f' stroke-width='1.2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='9' r='2.2' fill='%23ffd700' stroke='%235c4a1f' stroke-width='1'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -60,13 +60,6 @@
     display:flex;
     align-items:center;
     gap:10px;
-  }
-  .crest .mark{
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    background: var(--accent);
-    flex-shrink:0;
   }
   .crest .wordmark{
     font-size: 1.05rem;
@@ -568,8 +561,7 @@
 <div class="shell">
   <aside class="sidebar">
     <div class="crest">
-      <div class="mark"></div>
-      <div class="wordmark">Kingdoms</div>
+      <div class="wordmark">👑 Kingdoms</div>
     </div>
     <nav>
       <button class="nav-btn active" data-view="roster">Nobles <span class="nav-count" id="nav-royals-count"></span></button>
@@ -910,6 +902,7 @@ onSnapshot(simsCol, snap => {
   SIMS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   SIMS.sort((a, b) => fullName(a).localeCompare(fullName(b)));
   document.getElementById("nav-royals-count").textContent = `(${SIMS.length})`;
+  document.getElementById("nav-dynasties-count").textContent = `(${getDynastyGroups().length})`;
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
   if (document.getElementById("view-detail").classList.contains("active")) renderDetail();
@@ -1126,9 +1119,7 @@ function renderRoster(){
 }
 
 /* ---------------- Dynasties ---------------- */
-function renderDynasties(){
-  const container = document.getElementById("dynasties-grid");
-
+function getDynastyGroups(){
   const groups = {};
   SIMS.forEach(s => {
     const name = (s.dynasty || "").trim();
@@ -1137,7 +1128,13 @@ function renderDynasties(){
     if (!groups[key]) groups[key] = { displayName: name, members: [] };
     groups[key].members.push(s);
   });
-  const dynastyList = Object.values(groups).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  return Object.values(groups).sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
+
+function renderDynasties(){
+  const container = document.getElementById("dynasties-grid");
+
+  const dynastyList = getDynastyGroups();
 
   document.getElementById("nav-dynasties-count").textContent = `(${dynastyList.length})`;
 
