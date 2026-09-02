@@ -1482,10 +1482,11 @@ function relationLabel(dSel, dCand, candidateGender){
 }
 
 // Finds the closest common ancestor between two royals and labels the tie.
-// Returns null if the two are connected in the blood-relative graph but no
-// clean common ancestor could be resolved from the Father/Mother/Children
-// data, meaning something in the chain is missing or inconsistent.
-function describeRelation(selectedId, candidateId, parentsOf, candidateGender){
+// Falls back to the Siblings field for aunt/uncle, niece/nephew, and cousin
+// ties when one side's Father/Mother isn't on record, since a shared parent
+// isn't the only way we know two people are related. Returns null only if
+// nothing at all connects them through the data we have.
+function describeRelation(selectedId, candidateId, parentsOf, siblingsOf, candidateGender){
   const aDist = ancestorDistances(selectedId, parentsOf, 4);
   const bDist = ancestorDistances(candidateId, parentsOf, 4);
   let best = null;
@@ -1497,8 +1498,28 @@ function describeRelation(selectedId, candidateId, parentsOf, candidateGender){
       if (!best || sum < best.sum) best = { dSel, dCand, sum };
     }
   });
-  if (!best) return null;
-  return relationLabel(best.dSel, best.dCand, candidateGender);
+  if (best) return relationLabel(best.dSel, best.dCand, candidateGender);
+
+  const f = candidateGender === "female";
+  const selParents = parentsOf[selectedId] || new Set();
+  const candParents = parentsOf[candidateId] || new Set();
+
+  // Aunt/uncle: candidate is a sibling of one of the selected royal's parents.
+  for (const p of selParents){
+    if (siblingsOf[p] && siblingsOf[p].has(candidateId)) return f ? "Aunt" : "Uncle";
+  }
+  // Niece/nephew: the selected royal is a sibling of one of the candidate's parents.
+  for (const p of candParents){
+    if (siblingsOf[p] && siblingsOf[p].has(selectedId)) return f ? "Niece" : "Nephew";
+  }
+  // Cousins: their parents are siblings of each other.
+  for (const p1 of selParents){
+    for (const p2 of candParents){
+      if (siblingsOf[p1] && siblingsOf[p1].has(p2)) return "Cousin";
+    }
+  }
+
+  return null;
 }
 
 const CANDIDATE_PAGE_SIZE = 30;
@@ -1649,7 +1670,7 @@ function renderMatchmaker(){
       if (siblingsOf[sim.id] && siblingsOf[sim.id].has(c.id)){
         relation = c.gender === "female" ? "Sister" : "Brother";
       } else {
-        relation = describeRelation(sim.id, c.id, parentsOf, c.gender);
+        relation = describeRelation(sim.id, c.id, parentsOf, siblingsOf, c.gender);
       }
       reason = relation ? `${relation}, ineligible` : "Related, ineligible (family data unclear)";
     } else {
