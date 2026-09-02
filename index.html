@@ -179,6 +179,12 @@
     color: var(--text-muted);
     margin-top: 2px;
   }
+  .royal-card .heir-tag{
+    font-size: 0.72rem;
+    color: var(--accent);
+    font-weight: 600;
+    margin-top: 4px;
+  }
   .royal-card .card-badges{
     display:flex;
     flex-wrap: wrap;
@@ -575,7 +581,11 @@
           </div>
           <div class="field">
             <label for="f-dynasty-role">Dynasty role</label>
-            <input id="f-dynasty-role" placeholder="e.g. Heir, member" />
+            <select id="f-dynasty-role">
+              <option value="Head">Head</option>
+              <option value="Heir">Heir</option>
+              <option value="Member" selected>Member</option>
+            </select>
           </div>
         </div>
         <div class="field">
@@ -735,7 +745,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-gender").value = s.gender || "female";
   document.getElementById("f-title").value = s.title || "";
   document.getElementById("f-dynasty").value = s.dynasty || "";
-  document.getElementById("f-dynasty-role").value = s.dynastyRole || "";
+  document.getElementById("f-dynasty-role").value = normalizeDynastyRole(s.dynastyRole);
   document.getElementById("f-realm").value = s.realm || "";
   document.getElementById("f-father").value = s.father || "";
   document.getElementById("f-mother").value = s.mother || "";
@@ -780,6 +790,12 @@ function escapeHtml(str){
 // Marital status is free text, but divorced/separated/widowed sims should be
 // treated as eligible for matching just like single sims, even if the Spouse
 // field wasn't cleared out by hand.
+const DYNASTY_ROLE_OPTIONS = ["Head", "Heir", "Member"];
+function normalizeDynastyRole(text){
+  const match = DYNASTY_ROLE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
+  return match || "Member";
+}
+
 const MARITAL_OPTIONS = ["Single", "Engaged", "Married", "Separated", "Divorced", "Widowed"];
 function normalizeMaritalStatus(text){
   const match = MARITAL_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
@@ -860,7 +876,9 @@ function renderRoster(){
   list.innerHTML = visibleRows.map(s => {
     const isDeceased = isDeceasedSim(s);
     const badge = maritalBadge(s);
-    const subline = [s.title, s.dynastyRole].filter(Boolean).join(" · ") || [s.dynasty, s.realm].filter(Boolean).join(" · ");
+    const displayName = [s.title, s.firstName, s.lastName].filter(Boolean).join(" ").trim();
+    const role = normalizeDynastyRole(s.dynastyRole);
+    const roleTag = (role === "Head" || role === "Heir") ? role : null;
 
     return `
     <div class="royal-card" tabindex="0" role="button" data-open="${s.id}">
@@ -869,7 +887,7 @@ function renderRoster(){
           ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
           </span>` : ''}
-          <span>${escapeHtml(fullName(s) || "(unnamed)")}</span>
+          <span>${escapeHtml(displayName || "(unnamed)")}</span>
         </div>
         <div class="card-menu">
           <button class="icon-btn" data-menu-toggle="${s.id}" data-tooltip="More" aria-label="More options">
@@ -881,7 +899,8 @@ function renderRoster(){
           </div>
         </div>
       </div>
-      ${subline ? `<div class="subline">${escapeHtml(subline)}</div>` : ''}
+      ${s.dynasty ? `<div class="subline">${escapeHtml(s.dynasty)}</div>` : ''}
+      ${roleTag ? `<div class="heir-tag">${roleTag}</div>` : ''}
       <div class="card-badges">
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
         <span class="badge ${badge.cls}">${badge.label}</span>
