@@ -345,9 +345,6 @@
     transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
   .labeled-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
-  .labeled-btn.is-active{ border-color: var(--accent); color: var(--accent); }
-  .labeled-btn.danger{ color: var(--danger); }
-  .labeled-btn.danger:hover{ background: var(--danger-bg); border-color: var(--danger); }
 
   /* Form */
   form.entry-form{
@@ -483,9 +480,6 @@
     padding: 14px 18px;
     border-radius: 6px;
     margin-bottom: 18px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
   }
   .selected-banner .who{ font-weight:600; color: var(--text); }
   .toast{
@@ -650,11 +644,11 @@
           <div class="field">
             <label for="f-dynasty-role">Dynasty role</label>
             <select id="f-dynasty-role">
+              <option value="Founder">Founder</option>
               <option value="Head">Head</option>
               <option value="Heir">Heir</option>
               <option value="Member" selected>Member</option>
               <option value="Outcast">Outcast</option>
-              <option value="Founder">Founder</option>
             </select>
           </div>
         </div>
@@ -774,9 +768,11 @@ const db = getFirestore(app);
 const simsCol = collection(db, "sims");
 
 /* Sim doc shape:
-   firstName, lastName, gender ('male'|'female'), title, dynasty, dynastyRole,
-   realm, father (text), mother (text), maritalStatus (text), spouse (text),
-   children (comma-separated text)
+   firstName, lastName, gender ('male'|'female'), status ('alive'|'deceased'),
+   age ('Child'|'Teenager'|'Adult'|'Elder'), title, dynasty, dynastyRole,
+   realm, father (text), mother (text), siblings (comma-separated text),
+   maritalStatus (controlled text), spouse (text), children (comma-separated
+   text), notes (text), createdAt (server timestamp)
 */
 let SIMS = [];
 
@@ -829,6 +825,7 @@ function openEditForm(id, returnView){
   editingId = id;
   editReturnView = returnView;
   editingOriginalName = fullName(s);
+  document.getElementById("name-duplicate-error").hidden = true;
 
   document.getElementById("f-first").value = s.firstName || "";
   document.getElementById("f-last").value = s.lastName || "";
@@ -848,7 +845,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-notes").value = s.notes || "";
 
   document.getElementById("add-view-heading").textContent = "Edit Royal";
-  document.getElementById("add-view-subhead").textContent = `Editing ${fullName(s) || "this royal"}.`;
+  document.getElementById("add-view-subhead").textContent = `Editing ${displayName(s) || "this royal"}.`;
   document.getElementById("submit-btn").textContent = "Save changes";
   document.getElementById("cancel-edit-btn").hidden = false;
 
@@ -883,10 +880,7 @@ function escapeHtml(str){
   return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
-// Marital status is free text, but divorced/separated/widowed sims should be
-// treated as eligible for matching just like single sims, even if the Spouse
-// field wasn't cleared out by hand.
-const DYNASTY_ROLE_OPTIONS = ["Head", "Heir", "Member", "Outcast", "Founder"];
+const DYNASTY_ROLE_OPTIONS = ["Founder", "Head", "Heir", "Member", "Outcast"];
 
 const AGE_OPTIONS = ["Child", "Teenager", "Adult", "Elder"];
 function normalizeAge(text){
@@ -910,6 +904,8 @@ function normalizeMaritalStatus(text){
 }
 function isDeceasedSim(s){ return (s.status || "").trim().toLowerCase() === "deceased"; }
 // Eligible for matchmaking: everyone except Engaged, Married, and Not Eligible.
+// Single/Separated/Divorced/Widowed all count, even if the Spouse field
+// wasn't cleared out by hand.
 function isEligibleSingle(s){
   const status = normalizeMaritalStatus(s.maritalStatus);
   return status !== "Engaged" && status !== "Married" && status !== "Not Eligible";
@@ -1048,9 +1044,9 @@ function renderRoster(){
   list.querySelectorAll("[data-delete]").forEach(btn => btn.addEventListener("click", async e => {
     e.stopPropagation();
     const s = SIMS.find(x => x.id === btn.dataset.delete);
-    if (!confirm(`Remove ${fullName(s)} from the ledger? This cannot be undone.`)) return;
+    if (!confirm(`Remove ${displayName(s)} from the ledger? This cannot be undone.`)) return;
     await deleteDoc(doc(db, "sims", btn.dataset.delete));
-    showToast(`${fullName(s)} removed from the ledger.`);
+    showToast(`${displayName(s)} removed from the ledger.`);
   }));
 
   const observer = ensureScrollObserver();
@@ -1107,7 +1103,8 @@ function renderDetail(){
 
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
-  const subline = [s.title, s.dynastyRole].filter(Boolean).join(" · ");
+  const role = normalizeDynastyRole(s.dynastyRole);
+  const subline = [s.dynasty, role].filter(Boolean).join(", ");
 
   const field = (label, value) => `
     <div class="detail-field">
@@ -1118,7 +1115,7 @@ function renderDetail(){
   container.innerHTML = `
     <div class="detail-header">
       <div class="detail-title-block">
-        <div class="detail-title">${escapeHtml(fullName(s) || "(unnamed)")}</div>
+        <div class="detail-title">${escapeHtml(displayName(s) || "(unnamed)")}</div>
         ${subline ? `<div class="detail-subtitle">${escapeHtml(subline)}</div>` : ''}
         <div class="detail-badges">
           <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
@@ -1329,7 +1326,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       payload.createdAt = serverTimestamp();
       await addDoc(simsCol, payload);
       e.target.reset();
-      showToast(`${fullName(payload)} added to the ledger.`);
+      showToast(`${displayName(payload)} added to the ledger.`);
     }
   } catch (err) {
     console.error(err);
