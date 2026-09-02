@@ -173,8 +173,20 @@
     color: var(--text-muted);
     margin-top: 2px;
   }
-  .royal-card.deceased{ opacity: 0.5; }
-  .royal-card.deceased:hover{ opacity: 0.7; }
+  .royal-card.deceased .card-top .name,
+  .royal-card.deceased .subline,
+  .royal-card.deceased .card-badges,
+  .royal-card.deceased .snippet,
+  .royal-card.deceased .card-menu > .icon-btn{
+    opacity: 0.5;
+  }
+  .royal-card.deceased:hover .card-top .name,
+  .royal-card.deceased:hover .subline,
+  .royal-card.deceased:hover .card-badges,
+  .royal-card.deceased:hover .snippet,
+  .royal-card.deceased:hover .card-menu > .icon-btn{
+    opacity: 0.7;
+  }
   .royal-card .card-badges{
     display:flex;
     flex-wrap: wrap;
@@ -1466,37 +1478,6 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
 /* ---------------- Matchmaker ---------------- */
 let selectedSimId = null;
 
-// Build an undirected parent<->child graph by matching the Father / Mother /
-// Children text fields against every royal's full name. Names must match
-// exactly (case-insensitive) to link correctly.
-function buildRelationGraph(){
-  const byName = {};
-  SIMS.forEach(s => {
-    const key = normalizeName(fullName(s));
-    if (key) (byName[key] ||= []).push(s.id);
-  });
-
-  const adj = {};
-  const addEdge = (a, b) => {
-    if (!a || !b || a === b) return;
-    (adj[a] ||= new Set()).add(b);
-    (adj[b] ||= new Set()).add(a);
-  };
-
-  SIMS.forEach(s => {
-    (byName[normalizeName(s.father)] || []).forEach(id => addEdge(s.id, id));
-    (byName[normalizeName(s.mother)] || []).forEach(id => addEdge(s.id, id));
-    (s.children || "").split(",").map(n => n.trim()).filter(Boolean).forEach(childName => {
-      (byName[normalizeName(childName)] || []).forEach(id => addEdge(s.id, id));
-    });
-    (s.siblings || "").split(",").map(n => n.trim()).filter(Boolean).forEach(sibName => {
-      (byName[normalizeName(sibName)] || []).forEach(id => addEdge(s.id, id));
-    });
-  });
-
-  return adj;
-}
-
 // Direct sibling lookups (from the Siblings field alone) so a blocked pair
 // can be labeled "Sister"/"Brother" even when there's no shared Father or
 // Mother on record to trace it through.
@@ -1518,28 +1499,6 @@ function buildSiblingMap(){
     });
   });
   return siblingsOf;
-}
-
-// BFS up to depth 4 covers: parents/children (1), grandparents/grandchildren
-// & siblings (2), aunts/uncles/nieces/nephews (3), first cousins (4).
-function bloodRelatives(id, adj, maxDepth = 4){
-  const visited = new Set([id]);
-  let frontier = [id];
-  for (let depth = 0; depth < maxDepth; depth++){
-    const next = [];
-    frontier.forEach(cur => {
-      (adj[cur] || new Set()).forEach(neighbor => {
-        if (!visited.has(neighbor)){
-          visited.add(neighbor);
-          next.push(neighbor);
-        }
-      });
-    });
-    frontier = next;
-    if (!frontier.length) break;
-  }
-  visited.delete(id);
-  return visited;
 }
 
 // Directed version of the same name-matched parent/child data: parentsOf[id]
@@ -1765,10 +1724,19 @@ function renderMatchmaker(){
     </div>`;
 
   const oppositeGender = sim.gender === "male" ? "female" : "male";
-  const adj = buildRelationGraph();
-  const forbidden = bloodRelatives(sim.id, adj);
   const parentsOf = buildParentMap();
   const siblingsOf = buildSiblingMap();
+
+  // A single source of truth for "are these two blood relatives, and if so
+  // what's the tie". Only ever walks through actual parent/child and
+  // sibling edges, never through a shared child's *other* parent, so a
+  // married-in in-law never gets mistaken for a blood relative.
+  function relationTo(candidateId, candidateGender){
+    if (siblingsOf[sim.id] && siblingsOf[sim.id].has(candidateId)){
+      return candidateGender === "female" ? "Sister" : "Brother";
+    }
+    return describeRelation(sim.id, candidateId, parentsOf, siblingsOf, candidateGender);
+  }
 
   const candidates = SIMS.filter(s =>
     s.id !== sim.id &&
@@ -1787,20 +1755,14 @@ function renderMatchmaker(){
 
   grid.innerHTML = candidates.map(c => {
     const ageMismatch = simAge !== normalizeAge(c.age);
-    const familyBlocked = forbidden.has(c.id);
-    const blocked = ageMismatch || familyBlocked;
+    const relation = ageMismatch ? null : relationTo(c.id, c.gender);
+    const blocked = ageMismatch || !!relation;
     let reason;
     if (ageMismatch){
       // Checked first: adults only pair with adults, elders only with elders.
       reason = "Different age group, ineligible";
-    } else if (familyBlocked){
-      let relation;
-      if (siblingsOf[sim.id] && siblingsOf[sim.id].has(c.id)){
-        relation = c.gender === "female" ? "Sister" : "Brother";
-      } else {
-        relation = describeRelation(sim.id, c.id, parentsOf, siblingsOf, c.gender);
-      }
-      reason = relation ? `${relation}, ineligible` : "Related, ineligible (family data unclear)";
+    } else if (relation){
+      reason = `${relation}, ineligible`;
     } else {
       reason = [c.dynasty, c.realm].filter(Boolean).join(", ") || "Eligible match";
     }
