@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Royals</title>
+<title>Kingdoms</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23120e07'/%3E%3Cpath d='M7 23 L7 13 L12 17 L16 9 L20 17 L25 13 L25 23 Z' fill='%23ffd700'/%3E%3Ccircle cx='16' cy='9' r='2' fill='%23ffd700'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -99,7 +99,7 @@
   .view-head h2{ font-size: 1.7rem; }
   .view-head p{ color: var(--text-muted); margin-top:8px; max-width: 62ch; }
 
-  /* Royals grid */
+  /* Nobles grid */
   .toolbar{
     display:flex;
     flex-wrap:wrap;
@@ -569,13 +569,13 @@
   <aside class="sidebar">
     <div class="crest">
       <div class="mark"></div>
-      <div class="wordmark">Dynasty</div>
+      <div class="wordmark">Kingdoms</div>
     </div>
     <nav>
-      <button class="nav-btn active" data-view="roster">Royals <span class="nav-count" id="nav-royals-count"></span></button>
+      <button class="nav-btn active" data-view="roster">Nobles <span class="nav-count" id="nav-royals-count"></span></button>
       <button class="nav-btn" data-view="dynasties">Dynasties <span class="nav-count" id="nav-dynasties-count"></span></button>
-      <button class="nav-btn" data-view="add">Add Royal</button>
-      <button class="nav-btn" data-view="match">Royal Matchmaking</button>
+      <button class="nav-btn" data-view="add">Add Noble</button>
+      <button class="nav-btn" data-view="match">Noble Matchmaking</button>
     </nav>
   </aside>
 
@@ -583,7 +583,7 @@
     <!-- ROSTER -->
     <section class="view active" id="view-roster">
       <div class="view-head">
-        <h2>Royals</h2>
+        <h2>Nobles</h2>
       </div>
       <div class="toolbar">
         <input type="search" id="royals-search" placeholder="Search anything: name, dynasty, gender, notes…" />
@@ -620,15 +620,15 @@
     <!-- DETAIL -->
 
     <section class="view" id="view-detail">
-      <button class="back-btn" id="detail-back">&larr; Back to Royals</button>
+      <button class="back-btn" id="detail-back">&larr; Back to Nobles</button>
       <div id="detail-content"></div>
     </section>
 
     <!-- ADD -->
     <section class="view" id="view-add">
       <div class="view-head">
-        <h2 id="add-view-heading">Add Royal</h2>
-        <p id="add-view-subhead">Record a royal into the ledger.</p>
+        <h2 id="add-view-heading">Add Noble</h2>
+        <p id="add-view-subhead">Record a noble into the ledger.</p>
       </div>
       <form class="entry-form" id="sim-form">
         <div class="row-2">
@@ -687,7 +687,7 @@
           </div>
         </div>
         <div class="field">
-          <label for="f-realm">Realm</label>
+          <label for="f-realm">Kingdom</label>
           <input id="f-realm" placeholder="e.g. Aurelia" />
         </div>
 
@@ -747,7 +747,7 @@
     <!-- MATCH -->
     <section class="view" id="view-match">
       <div class="view-head">
-        <h2>Royal Matchmaking</h2>
+        <h2>Noble Matchmaking</h2>
         <p>Pick a debutante to see who she may court.</p>
       </div>
       <div class="match-layout">
@@ -860,8 +860,8 @@ function resetFormToAddMode(){
   editingId = null;
   document.getElementById("sim-form").reset();
   document.getElementById("name-duplicate-error").hidden = true;
-  document.getElementById("add-view-heading").textContent = "Add Royal";
-  document.getElementById("add-view-subhead").textContent = "Record a royal into the ledger.";
+  document.getElementById("add-view-heading").textContent = "Add Noble";
+  document.getElementById("add-view-subhead").textContent = "Record a noble into the ledger.";
   document.getElementById("submit-btn").textContent = "Add to ledger";
   document.getElementById("cancel-edit-btn").hidden = true;
 }
@@ -891,8 +891,8 @@ function openEditForm(id, returnView){
   document.getElementById("f-children").value = s.children || "";
   document.getElementById("f-notes").value = s.notes || "";
 
-  document.getElementById("add-view-heading").textContent = "Edit Royal";
-  document.getElementById("add-view-subhead").textContent = `Editing ${displayName(s) || "this royal"}.`;
+  document.getElementById("add-view-heading").textContent = "Edit Noble";
+  document.getElementById("add-view-subhead").textContent = `Editing ${displayName(s) || "this noble"}.`;
   document.getElementById("submit-btn").textContent = "Save changes";
   document.getElementById("cancel-edit-btn").hidden = false;
 
@@ -923,7 +923,19 @@ onSnapshot(simsCol, snap => {
 function fullName(s){ return [s.firstName, s.lastName].filter(Boolean).join(" ").trim(); }
 // For display only. The Spouse/Father/Mother/Children matching system relies
 // on plain fullName() (no title), so never use this for stored field values.
-function displayName(s){ return [s.title, s.firstName, s.lastName].filter(Boolean).join(" ").trim(); }
+// King, Queen, Monarch, Prince, Princess (matched as a substring so "Crown
+// Princess" or "King of Aurelia" still count) get a crown next to their name
+// anywhere displayName() is used, to visually set the royal family apart
+// from the rest of the nobility.
+const ROYAL_TITLE_KEYWORDS = ["king", "queen", "monarch", "prince", "princess"];
+function isRoyalTitle(title){
+  const t = (title || "").toLowerCase();
+  return ROYAL_TITLE_KEYWORDS.some(k => t.includes(k));
+}
+function displayName(s){
+  const crown = isRoyalTitle(s.title) ? "👑 " : "";
+  return crown + [s.title, s.firstName, s.lastName].filter(Boolean).join(" ").trim();
+}
 function normalizeName(str){ return (str || "").trim().toLowerCase(); }
 function escapeHtml(str){
   return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -966,7 +978,7 @@ function maritalBadge(s){
   return { label: status, cls };
 }
 
-/* ---------------- Royals list ---------------- */
+/* ---------------- Nobles list ---------------- */
 function tsMillis(ts){ return (ts && typeof ts.toMillis === "function") ? ts.toMillis() : 0; }
 
 let sortMode = "date"; // "date" or "name"
@@ -988,7 +1000,7 @@ function ensureScrollObserver(){
   return scrollObserver;
 }
 
-// Builds one royal-card's HTML. Shared by the main Royals grid and the
+// Builds one royal-card's HTML. Shared by the main Nobles grid and the
 // Dynasty member list, so both look and behave identically.
 function buildRoyalCardHTML(s){
   const isDeceased = isDeceasedSim(s);
@@ -1065,7 +1077,7 @@ function renderRoster(){
   const list = document.getElementById("royals-grid");
 
   if (!SIMS.length){
-    list.innerHTML = `<div class="empty-state">No royals yet. Use "Add Royal" to found your dynasty.</div>`;
+    list.innerHTML = `<div class="empty-state">No nobles yet. Use "Add Noble" to found your dynasty.</div>`;
     ensureScrollObserver().disconnect();
     return;
   }
@@ -1097,7 +1109,7 @@ function renderRoster(){
   });
 
   if (!rows.length){
-    list.innerHTML = `<div class="empty-state">No royals match your search.</div>`;
+    list.innerHTML = `<div class="empty-state">No nobles match your search.</div>`;
     ensureScrollObserver().disconnect();
     return;
   }
@@ -1130,7 +1142,7 @@ function renderDynasties(){
   document.getElementById("nav-dynasties-count").textContent = `(${dynastyList.length})`;
 
   if (!dynastyList.length){
-    container.innerHTML = `<div class="empty-state">No dynasties yet. Give a royal a Dynasty name to start one.</div>`;
+    container.innerHTML = `<div class="empty-state">No dynasties yet. Give a noble a Dynasty name to start one.</div>`;
     return;
   }
 
@@ -1177,7 +1189,7 @@ function renderDynastyDetail(){
 
   const members = SIMS.filter(s => normalizeName(s.dynasty) === normalizeName(selectedDynastyName));
   if (!members.length){
-    container.innerHTML = `<div class="empty-state">No royals in this dynasty anymore.</div>`;
+    container.innerHTML = `<div class="empty-state">No nobles in this dynasty anymore.</div>`;
     return;
   }
   members.sort((a, b) => fullName(a).localeCompare(fullName(b)));
@@ -1229,7 +1241,7 @@ function renderDetail(){
   const container = document.getElementById("detail-content");
   const s = SIMS.find(x => x.id === selectedDetailId);
   if (!s){
-    container.innerHTML = `<div class="empty-state">This royal no longer exists in the ledger.</div>`;
+    container.innerHTML = `<div class="empty-state">This noble no longer exists in the ledger.</div>`;
     return;
   }
 
@@ -1264,7 +1276,7 @@ function renderDetail(){
         ${field('Age', s.age)}
         ${field('Dynasty', s.dynasty)}
         ${field('Dynasty role', s.dynastyRole)}
-        ${field('Realm', s.realm)}
+        ${field('Kingdom', s.realm)}
       </div>
     </div>
 
@@ -1417,7 +1429,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
   });
   const duplicate = SIMS.find(s => s.id !== editingId && normalizeName(fullName(s)) === normalizeName(typedName));
   if (duplicate){
-    errorBox.textContent = `A royal named "${typedName}" already exists in the ledger.`;
+    errorBox.textContent = `A noble named "${typedName}" already exists in the ledger.`;
     errorBox.hidden = false;
     document.getElementById("f-first").focus();
     return;
@@ -1759,7 +1771,7 @@ function renderMatchmaker(){
 
   if (!selectedSimId){
     banner.innerHTML = "";
-    grid.innerHTML = `<div class="empty-state">Select a royal on the left to see their eligible matches.</div>`;
+    grid.innerHTML = `<div class="empty-state">Select a noble on the left to see their eligible matches.</div>`;
     return;
   }
 
