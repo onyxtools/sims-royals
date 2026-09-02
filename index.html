@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Dynasty Ledger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink: #1c1730;
+    --ink-2: #24203f;
+    --ink-3: #2d2850;
+    --parchment: #efe4c8;
+    --parchment-dim: #e2d5b4;
+    --gold: #b8902f;
+    --gold-bright: #d9b45c;
+    --wine: #7a1f3d;
+    --wine-bright: #9c2a4f;
+    --text-light: #ede6d6;
+    --text-muted: #b6acc9;
+    --text-dark: #2c2418;
+    --grey-out: #6b6577;
+    --border: rgba(184,144,47,0.35);
+    --male: #4a6fa5;
+    --female: #a5495f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: radial-gradient(ellipse at top left, #241d3f 0%, var(--ink) 55%, #150f26 100%);
+    color: var(--text-light);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+  h1,h2,h3,.display{
+    font-family: 'Cinzel', serif;
+    letter-spacing: 0.01em;
+    color: var(--gold-bright);
+    margin: 0;
+  }
+  a{color:inherit;}
+  button{font-family:'Inter',sans-serif;cursor:pointer;border:none;}
+  input,select{font-family:'Inter',sans-serif;}
+
+  .shell{
+    display:grid;
+    grid-template-columns: 260px 1fr;
+    min-height:100vh;
+  }
+  .sidebar{
+    background: linear-gradient(180deg, var(--ink-2), var(--ink-3));
+    border-right: 1px solid var(--border);
+    padding: 32px 22px;
+    display:flex;
+    flex-direction:column;
+    gap: 36px;
+  }
+  .crest{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .crest svg{flex-shrink:0;}
+  .crest .wordmark{
+    font-size: 1.15rem;
+    line-height:1.15;
+  }
+  .crest .wordmark small{
+    display:block;
+    font-family:'Inter',sans-serif;
+    color: var(--text-muted);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    margin-top:3px;
+  }
+  nav{display:flex;flex-direction:column;gap:4px;}
+  nav button{
+    background:transparent;
+    color: var(--text-muted);
+    text-align:left;
+    padding: 11px 14px;
+    border-radius: 3px;
+    font-size: 0.95rem;
+    border-left: 2px solid transparent;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  nav button:hover{ color: var(--text-light); background: rgba(184,144,47,0.08); }
+  nav button.active{
+    color: var(--gold-bright);
+    border-left-color: var(--gold);
+    background: rgba(184,144,47,0.1);
+  }
+  .sidebar-foot{
+    margin-top:auto;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height:1.5;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+  .sidebar-foot span{color:var(--gold-bright);}
+
+  main{ padding: 44px 48px; max-width: 1100px; }
+  .view{ display:none; }
+  .view.active{ display:block; }
+  .view-head{ margin-bottom: 30px; }
+  .view-head h2{ font-size: 1.7rem; }
+  .view-head p{ color: var(--text-muted); margin-top:8px; max-width: 60ch; }
+
+  /* Roster */
+  .roster-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+  .sim-card{
+    background: var(--parchment);
+    color: var(--text-dark);
+    border-radius: 2px;
+    padding: 16px 18px;
+    position:relative;
+    border-left: 4px solid var(--gold);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+  }
+  .sim-card.deceased{ border-left-color: var(--grey-out); filter: saturate(0.55); }
+  .sim-card .name{
+    font-family:'Cinzel', serif;
+    font-weight:600;
+    font-size: 1.05rem;
+    color: var(--text-dark);
+  }
+  .sim-card .meta{
+    font-size: 0.8rem;
+    color: #5a4f3a;
+    margin-top: 4px;
+    line-height:1.6;
+  }
+  .badge{
+    display:inline-block;
+    font-size: 0.68rem;
+    padding: 2px 7px;
+    border-radius: 2px;
+    margin-right:5px;
+    color: white;
+  }
+  .badge.male{ background: var(--male); }
+  .badge.female{ background: var(--female); }
+  .badge.status-deceased{ background: var(--grey-out); }
+  .badge.status-alive{ background: #4f7a52; }
+  .badge.spoken{ background: var(--wine); }
+  .card-actions{
+    margin-top: 10px;
+    display:flex;
+    gap: 10px;
+  }
+  .card-actions button{
+    background:none;
+    color: var(--wine);
+    font-size: 0.78rem;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .empty-state{
+    color: var(--text-muted);
+    padding: 40px;
+    border: 1px dashed var(--border);
+    border-radius: 3px;
+    text-align:center;
+  }
+
+  /* Form */
+  form.entry-form{
+    background: var(--ink-2);
+    border: 1px solid var(--border);
+    padding: 28px 30px;
+    max-width: 560px;
+    border-radius: 3px;
+    display:flex;
+    flex-direction:column;
+    gap: 18px;
+  }
+  .field{ display:flex; flex-direction:column; gap:6px; }
+  .field label{ font-size: 0.8rem; color: var(--text-muted); }
+  .field input, .field select{
+    background: var(--ink-3);
+    border: 1px solid var(--border);
+    color: var(--text-light);
+    padding: 10px 12px;
+    border-radius: 2px;
+    font-size: 0.92rem;
+  }
+  .field input:focus, .field select:focus{ outline: 1px solid var(--gold); }
+  .row-2{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  .primary-btn{
+    background: var(--wine);
+    color: var(--text-light);
+    padding: 11px 20px;
+    border-radius: 2px;
+    font-size: 0.92rem;
+    align-self:flex-start;
+    transition: background 0.15s;
+  }
+  .primary-btn:hover{ background: var(--wine-bright); }
+  .primary-btn:disabled{ background: var(--grey-out); cursor:not-allowed; }
+  .form-note{ font-size: 0.78rem; color: var(--text-muted); }
+
+  /* Matchmaker */
+  .match-layout{ display:grid; grid-template-columns: 280px 1fr; gap: 30px; }
+  .candidate-list{ display:flex; flex-direction:column; gap:8px; max-height: 70vh; overflow-y:auto; padding-right:4px; }
+  .candidate-item{
+    background: var(--ink-2);
+    border: 1px solid var(--border);
+    padding: 10px 14px;
+    border-radius: 2px;
+    font-size: 0.9rem;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .candidate-item button{
+    background:none; color: var(--gold-bright); font-size: 0.82rem; text-decoration:underline;
+  }
+  .candidate-item.selected{ border-color: var(--gold); background: rgba(184,144,47,0.12); }
+
+  .match-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 14px;
+    align-content:flex-start;
+  }
+  .match-card{
+    background: var(--parchment);
+    color: var(--text-dark);
+    padding: 14px 16px;
+    border-radius: 2px;
+    border-left: 4px solid var(--wine);
+    cursor:pointer;
+    transition: transform 0.1s;
+  }
+  .match-card:hover{ transform: translateY(-2px); }
+  .match-card.blocked{
+    background: #3a3552;
+    color: var(--text-muted);
+    border-left-color: var(--grey-out);
+    cursor: not-allowed;
+    transform:none;
+  }
+  .match-card.blocked:hover{ transform:none; }
+  .match-card .name{ font-family:'Cinzel',serif; font-weight:600; font-size:0.98rem; }
+  .match-card .reason{ font-size: 0.75rem; margin-top:6px; color: #7a7391; }
+  .match-card.blocked .reason{ color: #9a93ad; font-style: italic; }
+  .selected-banner{
+    background: var(--ink-2);
+    border: 1px solid var(--gold);
+    padding: 14px 18px;
+    border-radius: 3px;
+    margin-bottom: 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .selected-banner .who{ font-family:'Cinzel',serif; color: var(--gold-bright); }
+  .toast{
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--wine); color: var(--text-light);
+    padding: 12px 20px; border-radius: 3px;
+    font-size: 0.88rem;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    opacity:0; transform: translateY(10px);
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+
+  @media (max-width: 780px){
+    .shell{ grid-template-columns: 1fr; }
+    .sidebar{ flex-direction:row; align-items:center; padding: 16px; overflow-x:auto; }
+    .sidebar-foot{ display:none; }
+    nav{ flex-direction:row; }
+    main{ padding: 26px 20px; }
+    .match-layout{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="sidebar">
+    <div class="crest">
+      <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+        <path d="M17 2 L29 8 V17 C29 24.5 24 29.5 17 32 C10 29.5 5 24.5 5 17 V8 Z" stroke="#d9b45c" stroke-width="1.4" fill="rgba(184,144,47,0.12)"/>
+        <path d="M17 9 L17 22 M11.5 15.5 L22.5 15.5" stroke="#d9b45c" stroke-width="1.4"/>
+      </svg>
+      <div class="wordmark">The Dynasty Ledger<small id="house-name">Royal lineage &amp; matrimony</small></div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-view="roster">The Roster</button>
+      <button class="nav-btn" data-view="add">New Entry</button>
+      <button class="nav-btn" data-view="match">The Match</button>
+    </nav>
+    <div class="sidebar-foot">
+      Connected as <span id="conn-status">connecting…</span>
+    </div>
+  </aside>
+
+  <main>
+    <!-- ROSTER -->
+    <section class="view active" id="view-roster">
+      <div class="view-head">
+        <h2>The Roster</h2>
+        <p>Every sim entered into the dynasty, living or passed. Marriages and parentage are recorded here.</p>
+      </div>
+      <div class="roster-grid" id="roster-grid"></div>
+    </section>
+
+    <!-- ADD -->
+    <section class="view" id="view-add">
+      <div class="view-head">
+        <h2>New Entry</h2>
+        <p>Record a sim into the ledger. Parentage lets the matchmaker know who not to pair.</p>
+      </div>
+      <form class="entry-form" id="sim-form">
+        <div class="row-2">
+          <div class="field">
+            <label for="f-name">Name</label>
+            <input id="f-name" required placeholder="e.g. Elowen Ashgrove" />
+          </div>
+          <div class="field">
+            <label for="f-gender">Gender</label>
+            <select id="f-gender">
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label for="f-house">House / surname</label>
+            <input id="f-house" placeholder="e.g. Ashgrove" />
+          </div>
+          <div class="field">
+            <label for="f-title">Title</label>
+            <input id="f-title" placeholder="e.g. Princess, Duke, Heir" />
+          </div>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label for="f-mother">Mother</label>
+            <select id="f-mother"><option value="">— unknown / founder —</option></select>
+          </div>
+          <div class="field">
+            <label for="f-father">Father</label>
+            <select id="f-father"><option value="">— unknown / founder —</option></select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-status">Status</label>
+          <select id="f-status">
+            <option value="alive">Alive</option>
+            <option value="deceased">Deceased</option>
+          </select>
+        </div>
+        <button type="submit" class="primary-btn" id="submit-btn">Add to ledger</button>
+        <div class="form-note">Married-in sims can be added the same way — just leave mother and father blank.</div>
+      </form>
+    </section>
+
+    <!-- MATCH -->
+    <section class="view" id="view-match">
+      <div class="view-head">
+        <h2>The Match</h2>
+        <p>Pick an unmarried sim to see who they may court. Blood relatives — up to first cousins — are greyed out automatically.</p>
+      </div>
+      <div class="match-layout">
+        <div>
+          <h3 style="font-size:0.95rem;color:var(--text-muted);font-family:'Inter',sans-serif;margin-bottom:10px;letter-spacing:0.02em;">Unmarried sims</h3>
+          <div class="candidate-list" id="candidate-list"></div>
+        </div>
+        <div>
+          <div id="match-selected-banner"></div>
+          <div class="match-grid" id="match-grid"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+  onSnapshot, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+
+/* ====================== FIREBASE CONFIG ======================
+   Replace with your own project's config object
+   (Firebase console → Project settings → Your apps → SDK setup)
+================================================================ */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const simsCol = collection(db, "sims");
+
+let SIMS = []; // live cache of all sims, [{id, name, gender, house, title, status, motherId, fatherId, spouseId}]
+
+/* ---------------- Navigation ---------------- */
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("view-" + btn.dataset.view).classList.add("active");
+    if (btn.dataset.view === "match") renderMatchmaker();
+  });
+});
+
+/* ---------------- Live data ---------------- */
+onSnapshot(query(simsCol, orderBy("name")), snap => {
+  SIMS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  document.getElementById("conn-status").textContent = SIMS.length + " sims in the ledger";
+  renderRoster();
+  populateParentSelects();
+  if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
+}, err => {
+  document.getElementById("conn-status").textContent = "connection error — check firebaseConfig";
+  console.error(err);
+});
+
+function simName(id){
+  const s = SIMS.find(x => x.id === id);
+  return s ? s.name : "Unknown";
+}
+
+/* ---------------- Roster ---------------- */
+function renderRoster(){
+  const grid = document.getElementById("roster-grid");
+  if (!SIMS.length){
+    grid.innerHTML = `<div class="empty-state">No sims yet. Use "New Entry" to found your dynasty.</div>`;
+    return;
+  }
+  grid.innerHTML = SIMS.map(s => `
+    <div class="sim-card ${s.status === 'deceased' ? 'deceased' : ''}">
+      <div class="name">${escapeHtml(s.name)}</div>
+      <div class="meta">
+        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge status-${s.status}">${s.status === 'deceased' ? 'Deceased' : 'Alive'}</span>
+        ${s.spouseId ? `<span class="badge spoken">Wed to ${escapeHtml(simName(s.spouseId))}</span>` : ''}
+        <br/>
+        ${s.house ? `House ${escapeHtml(s.house)}<br/>` : ''}
+        ${s.title ? `${escapeHtml(s.title)}<br/>` : ''}
+        Parents: ${s.motherId ? escapeHtml(simName(s.motherId)) : '—'} &amp; ${s.fatherId ? escapeHtml(simName(s.fatherId)) : '—'}
+      </div>
+      <div class="card-actions">
+        <button data-toggle-status="${s.id}">${s.status === 'deceased' ? 'Mark alive' : 'Mark deceased'}</button>
+        ${s.spouseId ? `<button data-widow="${s.id}">Dissolve marriage</button>` : ''}
+        <button data-delete="${s.id}">Remove</button>
+      </div>
+    </div>
+  `).join("");
+
+  grid.querySelectorAll("[data-toggle-status]").forEach(b => b.addEventListener("click", async () => {
+    const s = SIMS.find(x => x.id === b.dataset.toggleStatus);
+    await updateDoc(doc(db, "sims", s.id), { status: s.status === "deceased" ? "alive" : "deceased" });
+  }));
+  grid.querySelectorAll("[data-widow]").forEach(b => b.addEventListener("click", async () => {
+    const s = SIMS.find(x => x.id === b.dataset.widow);
+    const spouse = SIMS.find(x => x.id === s.spouseId);
+    await updateDoc(doc(db, "sims", s.id), { spouseId: null });
+    if (spouse) await updateDoc(doc(db, "sims", spouse.id), { spouseId: null });
+    showToast("Marriage dissolved.");
+  }));
+  grid.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Remove this sim from the ledger? This cannot be undone.")) return;
+    await deleteDoc(doc(db, "sims", b.dataset.delete));
+  }));
+}
+
+function escapeHtml(str){
+  return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ---------------- Add form ---------------- */
+function populateParentSelects(){
+  const mSel = document.getElementById("f-mother");
+  const fSel = document.getElementById("f-father");
+  const mothers = SIMS.filter(s => s.gender === "female");
+  const fathers = SIMS.filter(s => s.gender === "male");
+  mSel.innerHTML = `<option value="">— unknown / founder —</option>` + mothers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+  fSel.innerHTML = `<option value="">— unknown / founder —</option>` + fathers.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join("");
+}
+
+document.getElementById("sim-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  const payload = {
+    name: document.getElementById("f-name").value.trim(),
+    gender: document.getElementById("f-gender").value,
+    house: document.getElementById("f-house").value.trim(),
+    title: document.getElementById("f-title").value.trim(),
+    motherId: document.getElementById("f-mother").value || null,
+    fatherId: document.getElementById("f-father").value || null,
+    status: document.getElementById("f-status").value,
+    spouseId: null
+  };
+  try {
+    await addDoc(simsCol, payload);
+    e.target.reset();
+    showToast(`${payload.name} added to the ledger.`);
+  } catch (err) {
+    console.error(err);
+    showToast("Could not save — check your Firebase config.");
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+/* ---------------- Matchmaker ---------------- */
+let selectedSimId = null;
+
+function buildRelationGraph(){
+  // undirected adjacency of parent<->child edges
+  const adj = {};
+  const addEdge = (a,b) => {
+    if (!a || !b) return;
+    (adj[a] ||= new Set()).add(b);
+    (adj[b] ||= new Set()).add(a);
+  };
+  SIMS.forEach(s => {
+    addEdge(s.id, s.motherId);
+    addEdge(s.id, s.fatherId);
+  });
+  return adj;
+}
+
+// BFS up to depth 4 covers: parents/children (1), grandparents/grandchildren
+// & siblings (2), aunts/uncles/nieces/nephews (3), first cousins (4).
+function bloodRelatives(id, adj, maxDepth = 4){
+  const visited = new Set([id]);
+  let frontier = [id];
+  for (let depth = 0; depth < maxDepth; depth++){
+    const next = [];
+    frontier.forEach(cur => {
+      (adj[cur] || new Set()).forEach(neighbor => {
+        if (!visited.has(neighbor)){
+          visited.add(neighbor);
+          next.push(neighbor);
+        }
+      });
+    });
+    frontier = next;
+    if (!frontier.length) break;
+  }
+  visited.delete(id);
+  return visited;
+}
+
+function renderMatchmaker(){
+  const list = document.getElementById("candidate-list");
+  const singles = SIMS.filter(s => !s.spouseId && s.status === "alive");
+  if (!singles.length){
+    list.innerHTML = `<div class="empty-state">No unmarried living sims.</div>`;
+  } else {
+    list.innerHTML = singles.map(s => `
+      <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}">
+        <span>${escapeHtml(s.name)} <span style="color:var(--text-muted);font-size:0.78rem;">(${s.gender === 'male' ? 'M' : 'F'})</span></span>
+        <button data-pick="${s.id}">${s.id === selectedSimId ? 'Selected' : 'Select'}</button>
+      </div>
+    `).join("");
+    list.querySelectorAll("[data-pick]").forEach(b => b.addEventListener("click", () => {
+      selectedSimId = b.dataset.pick;
+      renderMatchmaker();
+    }));
+  }
+
+  const banner = document.getElementById("match-selected-banner");
+  const grid = document.getElementById("match-grid");
+
+  if (!selectedSimId){
+    banner.innerHTML = "";
+    grid.innerHTML = `<div class="empty-state">Select a sim on the left to see their eligible matches.</div>`;
+    return;
+  }
+
+  const sim = SIMS.find(s => s.id === selectedSimId);
+  if (!sim){ selectedSimId = null; renderMatchmaker(); return; }
+
+  banner.innerHTML = `
+    <div class="selected-banner">
+      <span class="who">Matches for ${escapeHtml(sim.name)}</span>
+      <button data-clear style="background:none;color:var(--gold-bright);text-decoration:underline;font-size:0.85rem;">Change selection</button>
+    </div>`;
+  banner.querySelector("[data-clear]").addEventListener("click", () => { selectedSimId = null; renderMatchmaker(); });
+
+  const oppositeGender = sim.gender === "male" ? "female" : "male";
+  const adj = buildRelationGraph();
+  const forbidden = bloodRelatives(sim.id, adj);
+
+  const candidates = SIMS.filter(s =>
+    s.id !== sim.id &&
+    s.gender === oppositeGender &&
+    !s.spouseId &&
+    s.status === "alive"
+  );
+
+  if (!candidates.length){
+    grid.innerHTML = `<div class="empty-state">No eligible sims of the opposite gender are currently unmarried.</div>`;
+    return;
+  }
+
+  grid.innerHTML = candidates.map(c => {
+    const blocked = forbidden.has(c.id);
+    return `
+      <div class="match-card ${blocked ? 'blocked' : ''}" data-marry="${blocked ? '' : c.id}">
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="reason">${blocked ? 'Blood relative — ineligible' : (c.house ? 'House ' + escapeHtml(c.house) : 'Eligible match')}</div>
+      </div>`;
+  }).join("");
+
+  grid.querySelectorAll("[data-marry]").forEach(card => {
+    const targetId = card.dataset.marry;
+    if (!targetId) return;
+    card.addEventListener("click", async () => {
+      if (!confirm(`Arrange the marriage of ${sim.name} and ${simName(targetId)}?`)) return;
+      await updateDoc(doc(db, "sims", sim.id), { spouseId: targetId });
+      await updateDoc(doc(db, "sims", targetId), { spouseId: sim.id });
+      showToast(`${sim.name} is now wed to ${simName(targetId)}.`);
+      selectedSimId = null;
+    });
+  });
+}
+
+/* ---------------- Toast ---------------- */
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2800);
+}
+</script>
+</body>
+</html>
