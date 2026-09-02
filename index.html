@@ -6,38 +6,36 @@
 <title>Royals</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --ink: #1c1730;
-    --ink-2: #24203f;
-    --ink-3: #2d2850;
-    --parchment: #efe4c8;
-    --parchment-dim: #e2d5b4;
-    --gold: #b8902f;
-    --gold-bright: #d9b45c;
-    --wine: #7a1f3d;
-    --wine-bright: #9c2a4f;
-    --text-light: #ede6d6;
-    --text-muted: #b6acc9;
-    --text-dark: #2c2418;
-    --grey-out: #6b6577;
-    --border: rgba(184,144,47,0.35);
-    --male: #4a6fa5;
-    --female: #a5495f;
+    --bg: #120e07;
+    --bg-elevated: #1c1610;
+    --bg-hover: #29200f;
+    --border: #3a2e17;
+    --text: #ffffff;
+    --text-muted: #a99968;
+    --accent: #ffd700;
+    --accent-hover: #e6c200;
+    --danger: #ef5a6f;
+    --danger-bg: rgba(239,90,111,0.14);
+    --success: #3ecf8e;
+    --male: #5b8def;
+    --female: #e774a0;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
-    background: radial-gradient(ellipse at top left, #241d3f 0%, var(--ink) 55%, #150f26 100%);
-    color: var(--text-light);
+    background: var(--bg);
+    color: var(--text);
     font-family: 'Inter', sans-serif;
     min-height: 100vh;
   }
   h1,h2,h3,.display{
-    font-family: 'Cinzel', serif;
-    letter-spacing: 0.01em;
-    color: var(--gold-bright);
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text);
     margin: 0;
   }
   a{color:inherit;}
@@ -50,7 +48,7 @@
     min-height:100vh;
   }
   .sidebar{
-    background: linear-gradient(180deg, var(--ink-2), var(--ink-3));
+    background: var(--bg-elevated);
     border-right: 1px solid var(--border);
     padding: 32px 22px;
     display:flex;
@@ -60,47 +58,46 @@
   .crest{
     display:flex;
     align-items:center;
-    gap:12px;
+    gap:10px;
   }
-  .crest svg{flex-shrink:0;}
+  .crest .mark{
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--accent);
+    flex-shrink:0;
+  }
   .crest .wordmark{
-    font-size: 1.15rem;
-    line-height:1.15;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
-  .crest .wordmark small{
-    display:block;
-    font-family:'Inter',sans-serif;
-    color: var(--text-muted);
-    font-size: 0.68rem;
-    letter-spacing: 0.06em;
-    margin-top:3px;
-  }
-  nav{display:flex;flex-direction:column;gap:4px;}
+  nav{display:flex;flex-direction:column;gap:2px;}
   nav button{
     background:transparent;
     color: var(--text-muted);
     text-align:left;
-    padding: 11px 14px;
-    border-radius: 3px;
-    font-size: 0.95rem;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 0.9rem;
     border-left: 2px solid transparent;
     transition: background 0.15s, color 0.15s, border-color 0.15s;
   }
-  nav button:hover{ color: var(--text-light); background: rgba(184,144,47,0.08); }
+  nav button:hover{ color: var(--text); background: var(--bg-hover); }
   nav button.active{
-    color: var(--gold-bright);
-    border-left-color: var(--gold);
-    background: rgba(184,144,47,0.1);
+    color: var(--text);
+    border-left-color: var(--accent);
+    background: var(--bg-hover);
   }
   .sidebar-foot{
     margin-top:auto;
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     color: var(--text-muted);
     line-height:1.5;
     border-top: 1px solid var(--border);
     padding-top: 16px;
   }
-  .sidebar-foot span{color:var(--gold-bright);}
+  .sidebar-foot span{color:var(--text);}
 
   main{ padding: 44px 48px; max-width: 1150px; }
   .view{ display:none; }
@@ -109,146 +106,246 @@
   .view-head h2{ font-size: 1.7rem; }
   .view-head p{ color: var(--text-muted); margin-top:8px; max-width: 62ch; }
 
-  /* Royals list */
+  /* Royals grid */
   .toolbar{
     display:flex;
     flex-wrap:wrap;
     gap: 10px;
     margin-bottom: 22px;
   }
-  .toolbar input[type="search"], .toolbar select{
-    background: var(--ink-2);
-    border: 1px solid var(--border);
-    color: var(--text-light);
-    padding: 9px 12px;
-    border-radius: 2px;
-    font-size: 0.85rem;
-  }
   .toolbar input[type="search"]{
     flex: 1 1 220px;
     min-width: 180px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 5px;
+    font-size: 0.85rem;
   }
-  .toolbar input[type="search"]:focus, .toolbar select:focus{ outline: 1px solid var(--gold); }
-  .toolbar select{ min-width: 150px; }
+  .toolbar input[type="search"]:focus{ outline: 1px solid var(--accent); }
+  .sort-btn{
+    display:flex;
+    align-items:center;
+    gap: 7px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .sort-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
+  .sort-btn svg{ transition: transform 0.15s; }
+  .sort-btn[data-dir="asc"] svg{ transform: rotate(180deg); }
   .result-count{
     font-size: 0.76rem;
     color: var(--text-muted);
     margin-bottom: 10px;
   }
-  .royals-list{ border-top: 1px solid var(--border); }
-  .royal-row{
-    display:flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 6px;
-    border-bottom: 1px solid var(--border);
+  .royals-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
   }
-  .royal-row:hover{ background: rgba(184,144,47,0.06); }
-  .royal-main{ flex: 1; min-width: 0; }
-  .royal-main .name{
-    font-family:'Cinzel', serif;
-    font-weight:600;
-    color: var(--gold-bright);
-    font-size: 0.95rem;
+  .royal-card{
+    position: relative;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s, border-color 0.12s, transform 0.1s;
   }
-  .royal-main .subline{
+  .royal-card:hover{ background: var(--bg-hover); border-color: var(--accent); transform: translateY(-1px); }
+  .royal-card:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+  .royal-card .name{
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.94rem;
+    padding-right: 18px;
+  }
+  .royal-card .subline{
     font-size: 0.76rem;
     color: var(--text-muted);
-    margin-top: 1px;
+    margin-top: 2px;
   }
-  .royal-main .meta-line{
-    font-size: 0.75rem;
-    color: #9088a6;
-    margin-top: 4px;
-    line-height: 1.5;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
-  }
-  .royal-badges{
+  .royal-card .card-badges{
     display:flex;
+    flex-wrap: wrap;
     gap: 6px;
-    flex-shrink:0;
+    margin-top: 12px;
+  }
+  .royal-card .snippet{
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .note-flag{
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    color: var(--text-muted);
+    display:flex;
   }
   .badge{
     display:inline-block;
     font-size: 0.66rem;
+    font-weight: 500;
     padding: 2px 7px;
-    border-radius: 2px;
-    color: white;
+    border-radius: 4px;
     white-space: nowrap;
   }
-  .badge.male{ background: var(--male); }
-  .badge.female{ background: var(--female); }
-  .badge.married{ background: var(--wine); }
-  .badge.single{ background: #4f7a52; }
-  .badge.deceased{ background: var(--grey-out); }
-  .royal-actions{
-    display:flex;
-    gap: 2px;
-    flex-shrink:0;
-  }
-  .icon-btn{
-    width: 28px;
-    height: 28px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: transparent;
-    color: var(--text-muted);
-    border-radius: 3px;
-    font-size: 0.95rem;
-    line-height:1;
-    transition: background 0.12s, color 0.12s;
-  }
-  .icon-btn:hover{ background: rgba(184,144,47,0.16); color: var(--gold-bright); }
-  .icon-btn.is-active{ color: var(--gold-bright); }
-  .icon-btn.danger:hover{ background: rgba(122,31,61,0.3); color: #e08aa4; }
+  .badge.male{ background: rgba(91,141,239,0.15); color: var(--male); }
+  .badge.female{ background: rgba(231,116,160,0.15); color: var(--female); }
+  .badge.married{ background: rgba(62,207,142,0.14); color: var(--success); }
+  .badge.single{ background: rgba(139,147,161,0.14); color: var(--text-muted); }
+  .badge.deceased{ background: rgba(239,90,111,0.14); color: var(--danger); }
   .empty-state{
     color: var(--text-muted);
     padding: 40px;
     border: 1px dashed var(--border);
-    border-radius: 3px;
+    border-radius: 5px;
     text-align:center;
+    grid-column: 1 / -1;
   }
+
+  /* Custom tooltip, works for any icon-only element via data-tooltip */
+  [data-tooltip]{ position:relative; }
+  [data-tooltip]::after{
+    content: attr(data-tooltip);
+    position:absolute;
+    bottom: calc(100% + 7px);
+    left:50%;
+    transform: translateX(-50%);
+    background: #050608;
+    color: var(--text);
+    font-size: 0.7rem;
+    font-weight: 500;
+    padding: 5px 9px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    opacity:0;
+    pointer-events:none;
+    transition: opacity 0.12s;
+    z-index: 30;
+  }
+  [data-tooltip]:hover::after, [data-tooltip]:focus-visible::after{ opacity:1; }
+
+  /* Detail page */
+  .back-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    background: none;
+    padding: 6px 0;
+    margin-bottom: 22px;
+  }
+  .back-btn:hover{ color: var(--text); }
+  .detail-header{ margin-bottom: 8px; }
+  .detail-title{ font-size: 1.5rem; font-weight: 700; }
+  .detail-subtitle{ color: var(--text-muted); margin-top: 4px; font-size: 0.9rem; }
+  .detail-badges{ display:flex; gap:6px; margin-top: 12px; }
+  .detail-section{ margin-top: 30px; max-width: 640px; }
+  .detail-section h3{
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 12px;
+    letter-spacing: 0.02em;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 9px;
+  }
+  .detail-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; }
+  .detail-field label{ display:block; font-size: 0.72rem; color: var(--text-muted); margin-bottom: 3px; }
+  .detail-field .value{ font-size: 0.9rem; color: var(--text); }
+  .detail-notes{
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  .detail-actions{ display:flex; gap: 10px; flex-wrap: wrap; margin-top: 34px; }
+  .labeled-btn{
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 15px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .labeled-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
+  .labeled-btn.is-active{ border-color: var(--accent); color: var(--accent); }
+  .labeled-btn.danger{ color: var(--danger); }
+  .labeled-btn.danger:hover{ background: var(--danger-bg); border-color: var(--danger); }
 
   /* Form */
   form.entry-form{
-    background: var(--ink-2);
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
     padding: 28px 30px;
     max-width: 620px;
-    border-radius: 3px;
+    border-radius: 6px;
     display:flex;
     flex-direction:column;
     gap: 18px;
   }
   .field{ display:flex; flex-direction:column; gap:6px; }
   .field label{ font-size: 0.8rem; color: var(--text-muted); }
-  .field .hint{ font-size: 0.72rem; color: #877ca0; }
+  .field .hint{ font-size: 0.72rem; color: var(--text-muted); }
   .field input, .field select{
-    background: var(--ink-3);
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
-    color: var(--text-light);
+    color: var(--text);
     padding: 10px 12px;
-    border-radius: 2px;
+    border-radius: 5px;
     font-size: 0.92rem;
   }
-  .field input:focus, .field select:focus{ outline: 1px solid var(--gold); }
+  .field input:focus, .field select:focus{ outline: 1px solid var(--accent); }
+  .field textarea{
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 0.92rem;
+    font-family: 'Inter', sans-serif;
+    min-height: 110px;
+    resize: vertical;
+  }
+  .field textarea:focus{ outline: 1px solid var(--accent); }
   .row-2{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
   .primary-btn{
-    background: var(--wine);
-    color: var(--text-light);
+    background: var(--accent);
+    color: #120e07;
+    font-weight: 600;
     padding: 11px 20px;
-    border-radius: 2px;
+    border-radius: 5px;
     font-size: 0.92rem;
     align-self:flex-start;
     transition: background 0.15s;
   }
-  .primary-btn:hover{ background: var(--wine-bright); }
-  .primary-btn:disabled{ background: var(--grey-out); cursor:not-allowed; }
+  .primary-btn:hover{ background: var(--accent-hover); }
+  .primary-btn:disabled{ background: var(--border); color: var(--text-muted); cursor:not-allowed; }
   .form-note{ font-size: 0.78rem; color: var(--text-muted); }
   .section-divider{
     border-top: 1px solid var(--border);
@@ -263,19 +360,19 @@
   .match-layout{ display:grid; grid-template-columns: 280px 1fr; gap: 30px; }
   .candidate-list{ display:flex; flex-direction:column; gap:8px; max-height: 70vh; overflow-y:auto; padding-right:4px; }
   .candidate-item{
-    background: var(--ink-2);
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
     padding: 10px 14px;
-    border-radius: 2px;
+    border-radius: 5px;
     font-size: 0.9rem;
     display:flex;
     justify-content:space-between;
     align-items:center;
   }
   .candidate-item button{
-    background:none; color: var(--gold-bright); font-size: 0.82rem; text-decoration:underline;
+    background:none; color: var(--accent); font-size: 0.82rem;
   }
-  .candidate-item.selected{ border-color: var(--gold); background: rgba(184,144,47,0.12); }
+  .candidate-item.selected{ border-color: var(--accent); background: var(--bg-hover); }
 
   .match-grid{
     display:grid;
@@ -284,43 +381,45 @@
     align-content:flex-start;
   }
   .match-card{
-    background: var(--parchment);
-    color: var(--text-dark);
+    background: var(--bg-elevated);
+    color: var(--text);
     padding: 14px 16px;
-    border-radius: 2px;
-    border-left: 4px solid var(--wine);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
     cursor:pointer;
-    transition: transform 0.1s;
+    transition: transform 0.1s, background 0.12s;
   }
-  .match-card:hover{ transform: translateY(-2px); }
+  .match-card:hover{ background: var(--bg-hover); transform: translateY(-2px); }
   .match-card.blocked{
-    background: #3a3552;
+    background: var(--bg);
     color: var(--text-muted);
-    border-left-color: var(--grey-out);
+    border-left-color: var(--border);
     cursor: not-allowed;
     transform:none;
   }
-  .match-card.blocked:hover{ transform:none; }
-  .match-card .name{ font-family:'Cinzel',serif; font-weight:600; font-size:0.98rem; }
-  .match-card .reason{ font-size: 0.75rem; margin-top:6px; color: #7a7391; }
-  .match-card.blocked .reason{ color: #9a93ad; font-style: italic; }
+  .match-card.blocked:hover{ background: var(--bg); transform:none; }
+  .match-card .name{ font-weight:600; font-size:0.95rem; }
+  .match-card .reason{ font-size: 0.75rem; margin-top:6px; color: var(--text-muted); }
+  .match-card.blocked .reason{ font-style: italic; }
   .selected-banner{
-    background: var(--ink-2);
-    border: 1px solid var(--gold);
+    background: var(--bg-elevated);
+    border: 1px solid var(--accent);
     padding: 14px 18px;
-    border-radius: 3px;
+    border-radius: 6px;
     margin-bottom: 18px;
     display:flex;
     justify-content:space-between;
     align-items:center;
   }
-  .selected-banner .who{ font-family:'Cinzel',serif; color: var(--gold-bright); }
+  .selected-banner .who{ font-weight:600; color: var(--text); }
   .toast{
     position: fixed; bottom: 24px; right: 24px;
-    background: var(--wine); color: var(--text-light);
-    padding: 12px 20px; border-radius: 3px;
+    background: var(--bg-elevated); color: var(--text);
+    border: 1px solid var(--border);
+    padding: 12px 20px; border-radius: 6px;
     font-size: 0.88rem;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     opacity:0; transform: translateY(10px);
     transition: opacity 0.2s, transform 0.2s;
     pointer-events:none;
@@ -344,10 +443,7 @@
 <div class="shell">
   <aside class="sidebar">
     <div class="crest">
-      <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-        <path d="M17 2 L29 8 V17 C29 24.5 24 29.5 17 32 C10 29.5 5 24.5 5 17 V8 Z" stroke="#d9b45c" stroke-width="1.4" fill="rgba(184,144,47,0.12)"/>
-        <path d="M17 9 L17 22 M11.5 15.5 L22.5 15.5" stroke="#d9b45c" stroke-width="1.4"/>
-      </svg>
+      <div class="mark"></div>
       <div class="wordmark">Dynasty</div>
     </div>
     <nav>
@@ -367,41 +463,27 @@
         <h2>Royals</h2>
       </div>
       <div class="toolbar">
-        <input type="search" id="royals-search" placeholder="Search by name, title, dynasty, realm…" />
-        <select id="royals-filter-gender">
-          <option value="">All genders</option>
-          <option value="female">Female</option>
-          <option value="male">Male</option>
-        </select>
-        <select id="royals-filter-status">
-          <option value="">All statuses</option>
-          <option value="married">Married</option>
-          <option value="single">Single</option>
-        </select>
-        <select id="royals-filter-life">
-          <option value="">Living &amp; deceased</option>
-          <option value="alive">Living</option>
-          <option value="deceased">Deceased</option>
-        </select>
-        <select id="royals-filter-dynasty">
-          <option value="">All dynasties</option>
-        </select>
-        <select id="royals-sort">
-          <option value="name-asc">Name (A–Z)</option>
-          <option value="name-desc">Name (Z–A)</option>
-          <option value="dynasty">Dynasty</option>
-          <option value="realm">Realm</option>
-        </select>
+        <input type="search" id="royals-search" placeholder="Search anything: name, dynasty, gender, notes…" />
+        <button class="sort-btn" id="royals-sort-toggle" data-dir="desc">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+          <span id="royals-sort-label">Newest first</span>
+        </button>
       </div>
       <div class="result-count" id="royals-count"></div>
-      <div class="royals-list" id="royals-list"></div>
+      <div class="royals-grid" id="royals-grid"></div>
+    </section>
+
+    <!-- DETAIL -->
+    <section class="view" id="view-detail">
+      <button class="back-btn" id="detail-back">&larr; Back to Royals</button>
+      <div id="detail-content"></div>
     </section>
 
     <!-- ADD -->
     <section class="view" id="view-add">
       <div class="view-head">
         <h2>Add Royal</h2>
-        <p>Record a sim into the ledger. Type parent, spouse, and children names exactly as they appear elsewhere in the ledger — that's how the matchmaker recognises relatives.</p>
+        <p>Record a royal into the ledger. Type parent, spouse, and children names exactly as they appear elsewhere in the ledger. That's how the matchmaker recognises relatives.</p>
       </div>
       <form class="entry-form" id="sim-form">
         <div class="row-2">
@@ -476,6 +558,12 @@
           <div class="hint">e.g. Rowan Ashgrove, Marisol Ashgrove</div>
         </div>
 
+        <div class="section-divider">Story</div>
+        <div class="field">
+          <label for="f-notes">Notes</label>
+          <textarea id="f-notes" placeholder="Backstory, personality, plot points, whatever you want to remember about them"></textarea>
+        </div>
+
         <button type="submit" class="primary-btn" id="submit-btn">Add to ledger</button>
         <div class="form-note">The matchmaker matches these name fields against other entries' first + last names, so keep spelling consistent across the ledger.</div>
       </form>
@@ -485,11 +573,11 @@
     <section class="view" id="view-match">
       <div class="view-head">
         <h2>Royal Matchmaking</h2>
-        <p>Pick an unmarried sim to see who they may court. Blood relatives — up to first cousins — are greyed out automatically, based on the Father / Mother / Children fields across the ledger.</p>
+        <p>Pick an unmarried royal to see who they may court. Blood relatives, up to first cousins, are greyed out automatically, based on the Father / Mother / Children fields across the ledger.</p>
       </div>
       <div class="match-layout">
         <div>
-          <h3 style="font-size:0.95rem;color:var(--text-muted);font-family:'Inter',sans-serif;margin-bottom:10px;letter-spacing:0.02em;">Unmarried sims</h3>
+          <h3 style="font-size:0.9rem;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Unmarried royals</h3>
           <div class="candidate-list" id="candidate-list"></div>
         </div>
         <div>
@@ -507,7 +595,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
   getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
-  onSnapshot
+  onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 /* ====================== FIREBASE CONFIG ======================
@@ -535,15 +623,32 @@ const simsCol = collection(db, "sims");
 let SIMS = [];
 
 /* ---------------- Navigation ---------------- */
+function showView(viewName){
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + viewName).classList.add("active");
+  const navBtn = document.querySelector(`.nav-btn[data-view="${viewName}"]`);
+  if (navBtn) navBtn.classList.add("active");
+}
+
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    btn.classList.add("active");
-    document.getElementById("view-" + btn.dataset.view).classList.add("active");
+    showView(btn.dataset.view);
     if (btn.dataset.view === "match") renderMatchmaker();
   });
 });
+
+let selectedDetailId = null;
+function openDetail(id){
+  selectedDetailId = id;
+  showView("detail");
+  renderDetail();
+}
+function closeDetail(){
+  selectedDetailId = null;
+  showView("roster");
+}
+document.getElementById("detail-back").addEventListener("click", closeDetail);
 
 /* ---------------- Live data ---------------- */
 onSnapshot(simsCol, snap => {
@@ -552,8 +657,9 @@ onSnapshot(simsCol, snap => {
   document.getElementById("conn-status").textContent = SIMS.length + " sims in the ledger";
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
+  if (document.getElementById("view-detail").classList.contains("active")) renderDetail();
 }, err => {
-  document.getElementById("conn-status").textContent = "connection error — check firebaseConfig";
+  document.getElementById("conn-status").textContent = "connection error, check firebaseConfig";
   console.error(err);
 });
 
@@ -564,18 +670,12 @@ function escapeHtml(str){
 }
 
 /* ---------------- Royals list ---------------- */
-function populateDynastyFilter(){
-  const sel = document.getElementById("royals-filter-dynasty");
-  const current = sel.value;
-  const dynasties = [...new Set(SIMS.map(s => (s.dynasty || "").trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
-  sel.innerHTML = `<option value="">All dynasties</option>` + dynasties.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join("");
-  if (dynasties.includes(current)) sel.value = current;
-}
+function tsMillis(ts){ return (ts && typeof ts.toMillis === "function") ? ts.toMillis() : 0; }
+
+let sortDir = "desc"; // "desc" = newest first, "asc" = oldest first
 
 function renderRoster(){
-  populateDynastyFilter();
-
-  const list = document.getElementById("royals-list");
+  const list = document.getElementById("royals-grid");
   const countEl = document.getElementById("royals-count");
 
   if (!SIMS.length){
@@ -585,103 +685,159 @@ function renderRoster(){
   }
 
   const searchTerm = document.getElementById("royals-search").value.trim().toLowerCase();
-  const genderFilter = document.getElementById("royals-filter-gender").value;
-  const statusFilter = document.getElementById("royals-filter-status").value;
-  const lifeFilter = document.getElementById("royals-filter-life").value;
-  const dynastyFilter = document.getElementById("royals-filter-dynasty").value;
-  const sortBy = document.getElementById("royals-sort").value;
 
   let rows = SIMS.filter(s => {
+    if (!searchTerm) return true;
     const isMarried = !!(s.spouse && s.spouse.trim());
     const isDeceased = s.status === "deceased";
-    if (genderFilter && s.gender !== genderFilter) return false;
-    if (statusFilter === "married" && !isMarried) return false;
-    if (statusFilter === "single" && isMarried) return false;
-    if (lifeFilter === "alive" && isDeceased) return false;
-    if (lifeFilter === "deceased" && !isDeceased) return false;
-    if (dynastyFilter && (s.dynasty || "").trim() !== dynastyFilter) return false;
-    if (searchTerm){
-      const haystack = [fullName(s), s.title, s.dynasty, s.dynastyRole, s.realm].filter(Boolean).join(" ").toLowerCase();
-      if (!haystack.includes(searchTerm)) return false;
-    }
-    return true;
+    const haystack = [
+      fullName(s), s.title, s.dynasty, s.dynastyRole, s.realm,
+      s.father, s.mother, s.maritalStatus, s.spouse, s.children, s.notes,
+      s.gender, s.gender === "male" ? "male" : "female",
+      isDeceased ? "deceased" : "alive living",
+      isMarried ? "married wed" : "single unmarried"
+    ].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(searchTerm);
   });
 
   rows.sort((a, b) => {
-    if (sortBy === "name-desc") return fullName(b).localeCompare(fullName(a));
-    if (sortBy === "dynasty") return (a.dynasty || "").localeCompare(b.dynasty || "") || fullName(a).localeCompare(fullName(b));
-    if (sortBy === "realm") return (a.realm || "").localeCompare(b.realm || "") || fullName(a).localeCompare(fullName(b));
+    const diff = tsMillis(a.createdAt) - tsMillis(b.createdAt);
+    if (diff !== 0) return sortDir === "desc" ? -diff : diff;
     return fullName(a).localeCompare(fullName(b));
   });
 
   countEl.textContent = `${rows.length} of ${SIMS.length} royals`;
 
   if (!rows.length){
-    list.innerHTML = `<div class="empty-state">No royals match your search or filters.</div>`;
+    list.innerHTML = `<div class="empty-state">No royals match your search.</div>`;
     return;
   }
 
   list.innerHTML = rows.map(s => {
     const isMarried = !!(s.spouse && s.spouse.trim());
     const isDeceased = s.status === "deceased";
-    const subline = [s.title, s.dynastyRole].filter(Boolean).join(" · ");
-    const metaParts = [];
-    if (s.dynasty) metaParts.push(`Dynasty: ${s.dynasty}`);
-    if (s.realm) metaParts.push(`Realm: ${s.realm}`);
-    metaParts.push(`Father: ${s.father || '—'}`);
-    metaParts.push(`Mother: ${s.mother || '—'}`);
-    if (s.maritalStatus) metaParts.push(`Marital: ${s.maritalStatus}`);
-    if (isMarried) metaParts.push(`Spouse: ${s.spouse}`);
-    if (s.children) metaParts.push(`Children: ${s.children}`);
-    const metaText = metaParts.join("  ·  ");
+    const subline = [s.title, s.dynastyRole].filter(Boolean).join(" · ") || [s.dynasty, s.realm].filter(Boolean).join(" · ");
 
     return `
-    <div class="royal-row">
-      <div class="royal-main">
-        <div class="name">${escapeHtml(fullName(s) || "(unnamed)")}</div>
-        ${subline ? `<div class="subline">${escapeHtml(subline)}</div>` : ''}
-        <div class="meta-line" title="${escapeHtml(metaText)}">${escapeHtml(metaText)}</div>
-      </div>
-      <div class="royal-badges">
+    <button class="royal-card" data-open="${s.id}">
+      ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
+      </span>` : ''}
+      <div class="name">${escapeHtml(fullName(s) || "(unnamed)")}</div>
+      ${subline ? `<div class="subline">${escapeHtml(subline)}</div>` : ''}
+      <div class="card-badges">
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
         <span class="badge ${isMarried ? 'married' : 'single'}">${isMarried ? 'Married' : 'Single'}</span>
         ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
       </div>
-      <div class="royal-actions">
-        <button class="icon-btn ${isDeceased ? 'is-active' : ''}" data-toggle-life="${s.id}" title="${isDeceased ? 'Mark living' : 'Mark deceased'}" aria-label="${isDeceased ? 'Mark living' : 'Mark deceased'}">†</button>
-        ${isMarried ? `<button class="icon-btn" data-widow="${s.id}" title="Dissolve marriage" aria-label="Dissolve marriage">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="5.3" cy="8" r="3"/><circle cx="10.9" cy="8" r="3" stroke-dasharray="1.6 1.4"/></svg>
-        </button>` : ''}
-        <button class="icon-btn danger" data-delete="${s.id}" title="Remove" aria-label="Remove">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 4h11M6 4V2.5h4V4M3.5 4l.6 9a1 1 0 001 .9h5.8a1 1 0 001-.9l.6-9M6.5 7v4M9.5 7v4"/></svg>
-        </button>
-      </div>
-    </div>
+      ${s.notes ? `<div class="snippet">${escapeHtml(s.notes)}</div>` : ''}
+    </button>
   `;
   }).join("");
 
-  list.querySelectorAll("[data-toggle-life]").forEach(b => b.addEventListener("click", async () => {
-    const s = SIMS.find(x => x.id === b.dataset.toggleLife);
-    await updateDoc(doc(db, "sims", s.id), { status: s.status === "deceased" ? "alive" : "deceased" });
-  }));
+  list.querySelectorAll("[data-open]").forEach(card => card.addEventListener("click", () => openDetail(card.dataset.open)));
+}
 
-  list.querySelectorAll("[data-widow]").forEach(b => b.addEventListener("click", async () => {
-    const s = SIMS.find(x => x.id === b.dataset.widow);
+document.getElementById("royals-search").addEventListener("input", renderRoster);
+
+document.getElementById("royals-sort-toggle").addEventListener("click", () => {
+  sortDir = sortDir === "desc" ? "asc" : "desc";
+  const btn = document.getElementById("royals-sort-toggle");
+  btn.dataset.dir = sortDir;
+  document.getElementById("royals-sort-label").textContent = sortDir === "desc" ? "Newest first" : "Oldest first";
+  renderRoster();
+});
+
+/* ---------------- Detail page ---------------- */
+function renderDetail(){
+  const container = document.getElementById("detail-content");
+  const s = SIMS.find(x => x.id === selectedDetailId);
+  if (!s){
+    container.innerHTML = `<div class="empty-state">This royal no longer exists in the ledger.</div>`;
+    return;
+  }
+
+  const isMarried = !!(s.spouse && s.spouse.trim());
+  const isDeceased = s.status === "deceased";
+  const subline = [s.title, s.dynastyRole].filter(Boolean).join(" · ");
+
+  const field = (label, value) => `
+    <div class="detail-field">
+      <label>${escapeHtml(label)}</label>
+      <div class="value">${value ? escapeHtml(value) : '<span style="color:var(--text-muted)">Not recorded</span>'}</div>
+    </div>`;
+
+  container.innerHTML = `
+    <div class="detail-header">
+      <div class="detail-title">${escapeHtml(fullName(s) || "(unnamed)")}</div>
+      ${subline ? `<div class="detail-subtitle">${escapeHtml(subline)}</div>` : ''}
+      <div class="detail-badges">
+        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge ${isMarried ? 'married' : 'single'}">${isMarried ? 'Married' : 'Single'}</span>
+        ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Overview</h3>
+      <div class="detail-grid">
+        ${field('Title', s.title)}
+        ${field('Dynasty', s.dynasty)}
+        ${field('Dynasty role', s.dynastyRole)}
+        ${field('Realm', s.realm)}
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Family</h3>
+      <div class="detail-grid">
+        ${field('Father', s.father)}
+        ${field('Mother', s.mother)}
+        ${field('Marital status', s.maritalStatus)}
+        ${field('Spouse', isMarried ? s.spouse : '')}
+        ${field('Children', s.children)}
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <h3>Story</h3>
+      ${s.notes
+        ? `<div class="detail-notes">${escapeHtml(s.notes)}</div>`
+        : `<div class="detail-notes" style="color:var(--text-muted);">No notes recorded yet.</div>`}
+    </div>
+
+    <div class="detail-actions">
+      <button class="labeled-btn ${isDeceased ? 'is-active' : ''}" data-toggle-life="${s.id}">
+        <span aria-hidden="true">†</span> Deceased
+      </button>
+      ${isMarried ? `<button class="labeled-btn" data-widow="${s.id}">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="5.3" cy="8" r="3"/><circle cx="10.9" cy="8" r="3" stroke-dasharray="1.6 1.4"/></svg>
+        Dissolve Marriage
+      </button>` : ''}
+      <button class="labeled-btn danger" data-delete="${s.id}">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M2.5 4h11M6 4V2.5h4V4M3.5 4l.6 9a1 1 0 001 .9h5.8a1 1 0 001-.9l.6-9M6.5 7v4M9.5 7v4"/></svg>
+        Remove
+      </button>
+    </div>
+  `;
+
+  container.querySelector("[data-toggle-life]").addEventListener("click", async () => {
+    await updateDoc(doc(db, "sims", s.id), { status: s.status === "deceased" ? "alive" : "deceased" });
+  });
+  const widowBtn = container.querySelector("[data-widow]");
+  if (widowBtn) widowBtn.addEventListener("click", async () => {
     const spouse = SIMS.find(x => normalizeName(fullName(x)) === normalizeName(s.spouse));
     await updateDoc(doc(db, "sims", s.id), { spouse: "", maritalStatus: "" });
     if (spouse) await updateDoc(doc(db, "sims", spouse.id), { spouse: "", maritalStatus: "" });
     showToast("Marriage dissolved. Update marital status by hand if you'd like (Widowed, Divorced, etc).");
-  }));
-  list.querySelectorAll("[data-delete]").forEach(b => b.addEventListener("click", async () => {
-    if (!confirm("Remove this sim from the ledger? This cannot be undone.")) return;
-    await deleteDoc(doc(db, "sims", b.dataset.delete));
-  }));
+  });
+  container.querySelector("[data-delete]").addEventListener("click", async () => {
+    if (!confirm("Remove this royal from the ledger? This cannot be undone.")) return;
+    await deleteDoc(doc(db, "sims", s.id));
+    showToast(`${fullName(s)} removed from the ledger.`);
+    closeDetail();
+  });
 }
-
-["royals-search"].forEach(id => document.getElementById(id).addEventListener("input", renderRoster));
-["royals-filter-gender", "royals-filter-status", "royals-filter-life", "royals-filter-dynasty", "royals-sort"].forEach(id =>
-  document.getElementById(id).addEventListener("change", renderRoster)
-);
 
 /* ---------------- Add form ---------------- */
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
@@ -701,7 +857,9 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     mother: document.getElementById("f-mother").value.trim(),
     maritalStatus: document.getElementById("f-marital-status").value.trim(),
     spouse: document.getElementById("f-spouse").value.trim(),
-    children: document.getElementById("f-children").value.trim()
+    children: document.getElementById("f-children").value.trim(),
+    notes: document.getElementById("f-notes").value.trim(),
+    createdAt: serverTimestamp()
   };
   try {
     await addDoc(simsCol, payload);
@@ -709,7 +867,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     showToast(`${fullName(payload)} added to the ledger.`);
   } catch (err) {
     console.error(err);
-    showToast("Could not save — check your Firebase config.");
+    showToast("Could not save. Check your Firebase config.");
   } finally {
     btn.disabled = false;
   }
@@ -719,7 +877,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
 let selectedSimId = null;
 
 // Build an undirected parent<->child graph by matching the Father / Mother /
-// Children text fields against every sim's full name. Names must match
+// Children text fields against every royal's full name. Names must match
 // exactly (case-insensitive) to link correctly.
 function buildRelationGraph(){
   const byName = {};
@@ -772,7 +930,7 @@ function renderMatchmaker(){
   const list = document.getElementById("candidate-list");
   const singles = SIMS.filter(s => !(s.spouse && s.spouse.trim()) && s.status !== "deceased");
   if (!singles.length){
-    list.innerHTML = `<div class="empty-state">No unmarried sims.</div>`;
+    list.innerHTML = `<div class="empty-state">No unmarried royals.</div>`;
   } else {
     list.innerHTML = singles.map(s => `
       <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}">
@@ -791,7 +949,7 @@ function renderMatchmaker(){
 
   if (!selectedSimId){
     banner.innerHTML = "";
-    grid.innerHTML = `<div class="empty-state">Select a sim on the left to see their eligible matches.</div>`;
+    grid.innerHTML = `<div class="empty-state">Select a royal on the left to see their eligible matches.</div>`;
     return;
   }
 
@@ -801,7 +959,7 @@ function renderMatchmaker(){
   banner.innerHTML = `
     <div class="selected-banner">
       <span class="who">Matches for ${escapeHtml(fullName(sim))}</span>
-      <button data-clear style="background:none;color:var(--gold-bright);text-decoration:underline;font-size:0.85rem;">Change selection</button>
+      <button data-clear style="background:none;color:var(--accent);font-size:0.85rem;">Change selection</button>
     </div>`;
   banner.querySelector("[data-clear]").addEventListener("click", () => { selectedSimId = null; renderMatchmaker(); });
 
@@ -817,7 +975,7 @@ function renderMatchmaker(){
   );
 
   if (!candidates.length){
-    grid.innerHTML = `<div class="empty-state">No eligible sims of the opposite gender are currently unmarried.</div>`;
+    grid.innerHTML = `<div class="empty-state">No eligible royals of the opposite gender are currently unmarried.</div>`;
     return;
   }
 
@@ -826,7 +984,7 @@ function renderMatchmaker(){
     return `
       <div class="match-card ${blocked ? 'blocked' : ''}" data-marry="${blocked ? '' : c.id}">
         <div class="name">${escapeHtml(fullName(c))}</div>
-        <div class="reason">${blocked ? 'Blood relative — ineligible' : (c.dynasty ? c.dynasty : 'Eligible match')}</div>
+        <div class="reason">${blocked ? 'Blood relative, ineligible' : (c.dynasty ? c.dynasty : 'Eligible match')}</div>
       </div>`;
   }).join("");
 
