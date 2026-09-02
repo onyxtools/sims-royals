@@ -131,6 +131,7 @@
     transition: background 0.12s, border-color 0.12s;
   }
   .sort-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
+  .sort-btn.active{ border-color: var(--accent); color: var(--accent); }
   .sort-btn svg{ transition: transform 0.15s; }
   .sort-btn[data-dir="asc"] svg{ transform: rotate(180deg); }
   .royals-grid{
@@ -383,6 +384,15 @@
     resize: vertical;
   }
   .field textarea:focus{ outline: 1px solid var(--accent); }
+  .field-error{
+    font-size: 0.8rem;
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: 1px solid var(--danger);
+    border-radius: 5px;
+    padding: 9px 12px;
+    margin-top: -6px;
+  }
   .row-2{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
   .primary-btn{
     background: var(--accent);
@@ -526,9 +536,13 @@
       </div>
       <div class="toolbar">
         <input type="search" id="royals-search" placeholder="Search anything: name, dynasty, gender, notes…" />
-        <button class="sort-btn" id="royals-sort-toggle" data-dir="desc">
+        <button class="sort-btn active" id="royals-sort-date" data-dir="desc">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
-          <span id="royals-sort-label">Newest first</span>
+          <span id="royals-sort-date-label">Newest first</span>
+        </button>
+        <button class="sort-btn" id="royals-sort-name" data-dir="asc">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+          <span id="royals-sort-name-label">A-Z</span>
         </button>
       </div>
       <div class="royals-grid" id="royals-grid"></div>
@@ -558,6 +572,7 @@
             <input id="f-last" placeholder="e.g. Ashgrove" />
           </div>
         </div>
+        <div class="field-error" id="name-duplicate-error" hidden></div>
         <div class="field">
           <label for="f-gender">Gender</label>
           <select id="f-gender">
@@ -733,6 +748,7 @@ let editReturnView = "roster";
 function resetFormToAddMode(){
   editingId = null;
   document.getElementById("sim-form").reset();
+  document.getElementById("name-duplicate-error").hidden = true;
   document.getElementById("add-view-heading").textContent = "Add Royal";
   document.getElementById("add-view-subhead").textContent = "Record a royal into the ledger.";
   document.getElementById("submit-btn").textContent = "Add to ledger";
@@ -823,7 +839,9 @@ function maritalBadge(s){
 /* ---------------- Royals list ---------------- */
 function tsMillis(ts){ return (ts && typeof ts.toMillis === "function") ? ts.toMillis() : 0; }
 
-let sortDir = "desc"; // "desc" = newest first, "asc" = oldest first
+let sortMode = "date"; // "date" or "name"
+let dateDir = "desc";  // "desc" = newest first, "asc" = oldest first
+let nameDir = "asc";   // "asc" = A-Z, "desc" = Z-A
 
 const PAGE_SIZE = 40;
 let visibleCount = PAGE_SIZE;
@@ -866,8 +884,12 @@ function renderRoster(){
   });
 
   rows.sort((a, b) => {
+    if (sortMode === "name"){
+      const cmp = fullName(a).localeCompare(fullName(b));
+      return nameDir === "asc" ? cmp : -cmp;
+    }
     const diff = tsMillis(a.createdAt) - tsMillis(b.createdAt);
-    if (diff !== 0) return sortDir === "desc" ? -diff : diff;
+    if (diff !== 0) return dateDir === "desc" ? -diff : diff;
     return fullName(a).localeCompare(fullName(b));
   });
 
@@ -962,14 +984,33 @@ document.getElementById("royals-search").addEventListener("input", () => {
   renderRoster();
 });
 
-document.getElementById("royals-sort-toggle").addEventListener("click", () => {
-  sortDir = sortDir === "desc" ? "asc" : "desc";
+function updateSortButtonsUI(){
+  const dateBtn = document.getElementById("royals-sort-date");
+  const nameBtn = document.getElementById("royals-sort-name");
+  dateBtn.dataset.dir = dateDir;
+  nameBtn.dataset.dir = nameDir;
+  dateBtn.classList.toggle("active", sortMode === "date");
+  nameBtn.classList.toggle("active", sortMode === "name");
+  document.getElementById("royals-sort-date-label").textContent = dateDir === "desc" ? "Newest first" : "Oldest first";
+  document.getElementById("royals-sort-name-label").textContent = nameDir === "asc" ? "A-Z" : "Z-A";
+}
+
+document.getElementById("royals-sort-date").addEventListener("click", () => {
+  if (sortMode === "date") dateDir = dateDir === "desc" ? "asc" : "desc";
+  sortMode = "date";
   visibleCount = PAGE_SIZE;
-  const btn = document.getElementById("royals-sort-toggle");
-  btn.dataset.dir = sortDir;
-  document.getElementById("royals-sort-label").textContent = sortDir === "desc" ? "Newest first" : "Oldest first";
+  updateSortButtonsUI();
   renderRoster();
 });
+
+document.getElementById("royals-sort-name").addEventListener("click", () => {
+  if (sortMode === "name") nameDir = nameDir === "asc" ? "desc" : "asc";
+  sortMode = "name";
+  visibleCount = PAGE_SIZE;
+  updateSortButtonsUI();
+  renderRoster();
+});
+updateSortButtonsUI();
 
 /* ---------------- Detail page ---------------- */
 function renderDetail(){
@@ -1075,11 +1116,28 @@ function tryAutofillFromSpouse(){
     showToast(`Auto-filled from ${fullName(match)}'s entry. Check it over before saving.`);
   }
 }
+document.getElementById("f-first").addEventListener("input", () => { document.getElementById("name-duplicate-error").hidden = true; });
+document.getElementById("f-last").addEventListener("input", () => { document.getElementById("name-duplicate-error").hidden = true; });
 document.getElementById("f-first").addEventListener("blur", tryAutofillFromSpouse);
 document.getElementById("f-last").addEventListener("blur", tryAutofillFromSpouse);
 
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  const errorBox = document.getElementById("name-duplicate-error");
+  errorBox.hidden = true;
+
+  const typedName = fullName({
+    firstName: document.getElementById("f-first").value,
+    lastName: document.getElementById("f-last").value
+  });
+  const duplicate = SIMS.find(s => s.id !== editingId && normalizeName(fullName(s)) === normalizeName(typedName));
+  if (duplicate){
+    errorBox.textContent = `A royal named "${typedName}" already exists in the ledger.`;
+    errorBox.hidden = false;
+    document.getElementById("f-first").focus();
+    return;
+  }
+
   const btn = document.getElementById("submit-btn");
   btn.disabled = true;
   const payload = {
