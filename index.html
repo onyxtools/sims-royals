@@ -723,7 +723,7 @@
           </div>
           <div class="field">
             <label for="f-title">Title</label>
-            <input id="f-title" placeholder="e.g. Princess" />
+            <select id="f-title"></select>
           </div>
         </div>
         <div class="row-2">
@@ -921,6 +921,7 @@ let editingOriginalName = "";
 function resetFormToAddMode(){
   editingId = null;
   document.getElementById("sim-form").reset();
+  populateTitleOptions(document.getElementById("f-gender").value, "");
   document.getElementById("name-duplicate-error").hidden = true;
   document.getElementById("add-view-heading").textContent = "Add Noble";
   document.getElementById("add-view-subhead").textContent = "Record a noble into the ledger.";
@@ -941,7 +942,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-gender").value = s.gender || "female";
   document.getElementById("f-deceased").checked = isDeceasedSim(s);
   document.getElementById("f-age").value = normalizeAge(s.age);
-  document.getElementById("f-title").value = s.title || "";
+  populateTitleOptions(s.gender || "female", s.title || "");
   document.getElementById("f-dynasty").value = s.dynasty || "";
   document.getElementById("f-dynasty-role").value = normalizeDynastyRole(s.dynastyRole);
   document.getElementById("f-realm").value = s.realm || "";
@@ -1005,6 +1006,27 @@ function escapeHtml(str){
 }
 
 const DYNASTY_ROLE_OPTIONS = ["Founder", "Head", "Heir", "Member", "Outcast"];
+
+const MALE_TITLES = ["Lord", "Knight", "Baron", "Viscount", "Count", "Marquess", "Duke", "Archduke", "Grand Duke", "Prince", "King"];
+const FEMALE_TITLES = ["Lady", "Dame", "Baroness", "Viscountess", "Countess", "Marchioness", "Duchess", "Archduchess", "Grand Duchess", "Princess", "Queen"];
+// Repopulates the Title dropdown for the given gender. If currentValue is a
+// title from before this became a controlled list (or just doesn't match
+// the new gender's list), it's kept as an extra selected option instead of
+// being silently wiped out.
+function populateTitleOptions(gender, currentValue){
+  const titles = gender === "male" ? MALE_TITLES : FEMALE_TITLES;
+  const select = document.getElementById("f-title");
+  let optionsHtml = `<option value="">No title</option>` + titles.map(t => `<option value="${t}">${t}</option>`).join("");
+  if (currentValue && !titles.includes(currentValue)){
+    optionsHtml += `<option value="${escapeHtml(currentValue)}">${escapeHtml(currentValue)} (custom)</option>`;
+  }
+  select.innerHTML = optionsHtml;
+  select.value = currentValue || "";
+}
+document.getElementById("f-gender").addEventListener("change", (e) => {
+  populateTitleOptions(e.target.value, "");
+});
+populateTitleOptions(document.getElementById("f-gender").value, "");
 
 const AGE_OPTIONS = ["Child", "Teenager", "Adult", "Elder"];
 function normalizeAge(text){
