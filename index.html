@@ -147,6 +147,22 @@
   }
   .sort-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
   .sort-btn.active{ border-color: var(--accent); color: var(--accent); }
+  .toolbar-toggle{
+    display:flex;
+    align-items:center;
+    gap: 7px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 14px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    cursor:pointer;
+    flex-shrink: 0;
+    transition: border-color 0.12s;
+  }
+  .toolbar-toggle:hover{ border-color: var(--accent); }
+  .toolbar-toggle input[type="checkbox"]{ width: 14px; height: 14px; accent-color: var(--accent); cursor:pointer; }
   .sort-btn svg{ transition: transform 0.15s; }
   .sort-btn[data-dir="asc"] svg{ transform: rotate(180deg); }
   .royals-grid{
@@ -391,6 +407,8 @@
     transition: background 0.12s, border-color 0.12s, color 0.12s;
   }
   .labeled-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
+  .labeled-btn.danger{ color: var(--danger); }
+  .labeled-btn.danger:hover{ background: var(--danger-bg); border-color: var(--danger); }
 
   /* Form */
   form.entry-form{
@@ -628,6 +646,11 @@
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
           <span id="royals-sort-name-label">A-Z</span>
         </button>
+        <label class="toolbar-toggle">
+          <input type="checkbox" id="hide-deceased-toggle" />
+          Hide deceased
+        </label>
+        <button class="labeled-btn danger" id="remove-all-btn">Remove All</button>
       </div>
       <div class="royals-grid" id="royals-grid"></div>
       <div id="royals-sentinel" style="height:1px;"></div>
@@ -1121,8 +1144,10 @@ function renderRoster(){
   }
 
   const searchTerm = document.getElementById("royals-search").value.trim().toLowerCase();
+  const hideDeceased = document.getElementById("hide-deceased-toggle").checked;
 
   let rows = SIMS.filter(s => {
+    if (hideDeceased && isDeceasedSim(s)) return false;
     if (!searchTerm) return true;
     const isMarried = !!(s.spouse && s.spouse.trim());
     const isDeceased = isDeceasedSim(s);
@@ -1257,6 +1282,46 @@ document.getElementById("royals-search-clear").addEventListener("click", () => {
   document.getElementById("royals-search-clear").hidden = true;
   visibleCount = PAGE_SIZE;
   renderRoster();
+});
+
+document.getElementById("hide-deceased-toggle").addEventListener("change", () => {
+  visibleCount = PAGE_SIZE;
+  renderRoster();
+});
+
+document.getElementById("remove-all-btn").addEventListener("click", () => {
+  document.getElementById("modal-body").innerHTML = `
+    <div class="modal-name">Remove All Nobles?</div>
+    <div class="modal-subline" style="color:var(--danger);">This permanently deletes every noble, and every dynasty along with them, from the ledger. This cannot be undone.</div>
+    <div class="field" style="margin-top:16px;">
+      <label for="modal-confirm-wipe">Type REMOVE ALL to confirm</label>
+      <input id="modal-confirm-wipe" placeholder="REMOVE ALL" autocomplete="off" />
+    </div>
+  `;
+  document.getElementById("modal-actions").innerHTML = `
+    <button class="primary-btn" id="modal-wipe-confirm" disabled>Remove All</button>
+    <button class="labeled-btn" id="modal-cancel-btn">Cancel</button>
+  `;
+  document.getElementById("modal-overlay").hidden = false;
+
+  const input = document.getElementById("modal-confirm-wipe");
+  const confirmBtn = document.getElementById("modal-wipe-confirm");
+  input.addEventListener("input", () => {
+    confirmBtn.disabled = input.value.trim().toUpperCase() !== "REMOVE ALL";
+  });
+  confirmBtn.addEventListener("click", async () => {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Removing…";
+    try {
+      await Promise.all(SIMS.map(s => deleteDoc(doc(db, "sims", s.id))));
+      showToast("Every noble has been removed. The ledger is empty again.");
+    } catch (err) {
+      console.error(err);
+      showToast("Something went wrong removing everyone. Check your connection and try again.");
+    }
+    closeModal();
+  });
+  document.getElementById("modal-cancel-btn").addEventListener("click", closeModal);
 });
 
 function updateSortButtonsUI(){
