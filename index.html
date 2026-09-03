@@ -1509,6 +1509,28 @@ function tryAutofillFamily(){
     }
   }
 
+  // Typed Father has a recorded Spouse: use them as Mother, and vice versa.
+  if (!motherField.value.trim()){
+    const fatherName = normalizeName(fatherField.value);
+    if (fatherName){
+      const fatherMatch = SIMS.find(s => normalizeName(fullName(s)) === fatherName);
+      if (fatherMatch && fatherMatch.spouse && fatherMatch.spouse.trim()){
+        motherField.value = fatherMatch.spouse.trim();
+        filled.push("Mother");
+      }
+    }
+  }
+  if (!fatherField.value.trim()){
+    const motherName = normalizeName(motherField.value);
+    if (motherName){
+      const motherMatch = SIMS.find(s => normalizeName(fullName(s)) === motherName);
+      if (motherMatch && motherMatch.spouse && motherMatch.spouse.trim()){
+        fatherField.value = motherMatch.spouse.trim();
+        filled.push("Father");
+      }
+    }
+  }
+
   if (filled.length){
     showToast(`Auto-filled ${filled.join(", ")} from matching entries. Check it over before saving.`);
   }
@@ -1556,6 +1578,27 @@ async function cascadeRename(excludeId, oldName, newName){
   return count;
 }
 
+// Keeps sibling relationships two-way. Auto-fill only ever fills a blank
+// Siblings field, so it can't help someone who already has siblings listed,
+// this runs on every save instead and appends the saved person to each of
+// their listed siblings' own Siblings field, if not already there.
+async function cascadeSiblingSync(savedId, savedName, siblingsText){
+  const names = (siblingsText || "").split(",").map(n => n.trim()).filter(Boolean);
+  if (!names.length || !savedName) return 0;
+  const savedNorm = normalizeName(savedName);
+  let count = 0;
+  for (const name of names){
+    const match = SIMS.find(s => s.id !== savedId && normalizeName(fullName(s)) === normalizeName(name));
+    if (!match) continue;
+    const theirSibs = (match.siblings || "").split(",").map(n => n.trim()).filter(Boolean);
+    if (theirSibs.some(n => normalizeName(n) === savedNorm)) continue;
+    const updated = [...theirSibs, savedName].join(", ");
+    await updateDoc(doc(db, "sims", match.id), { siblings: updated });
+    count++;
+  }
+  return count;
+}
+
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorBox = document.getElementById("name-duplicate-error");
@@ -1596,10 +1639,12 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
   try {
     if (editingId){
       await updateDoc(doc(db, "sims", editingId), payload);
-      const updatedCount = await cascadeRename(editingId, editingOriginalName, fullName(payload));
-      showToast(updatedCount
-        ? `Changes saved. Updated ${updatedCount} other ${updatedCount === 1 ? 'entry' : 'entries'} that referenced the old name.`
-        : "Changes saved.");
+      const renamedCount = await cascadeRename(editingId, editingOriginalName, fullName(payload));
+      const siblingCount = await cascadeSiblingSync(editingId, fullName(payload), payload.siblings);
+      const notes = [];
+      if (renamedCount) notes.push(`updated ${renamedCount} other ${renamedCount === 1 ? 'entry' : 'entries'} that referenced the old name`);
+      if (siblingCount) notes.push(`added them to ${siblingCount} sibling ${siblingCount === 1 ? 'entry' : 'entries'}`);
+      showToast(notes.length ? `Changes saved, ${notes.join(', and ')}.` : "Changes saved.");
       const returnTo = editReturnView;
       resetFormToAddMode();
       showView(returnTo);
@@ -1607,9 +1652,12 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       if (returnTo === "dynasty-detail") renderDynastyDetail();
     } else {
       payload.createdAt = serverTimestamp();
-      await addDoc(simsCol, payload);
+      const docRef = await addDoc(simsCol, payload);
+      const siblingCount = await cascadeSiblingSync(docRef.id, fullName(payload), payload.siblings);
       e.target.reset();
-      showToast(`${displayName(payload)} added to the ledger.`);
+      showToast(siblingCount
+        ? `${displayName(payload)} added to the ledger, and added to ${siblingCount} sibling ${siblingCount === 1 ? 'entry' : 'entries'}.`
+        : `${displayName(payload)} added to the ledger.`);
     }
   } catch (err) {
     console.error(err);
