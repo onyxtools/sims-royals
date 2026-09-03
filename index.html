@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Kingdoms</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffd700'/%3E%3Cpath d='M7 23 L7 13 L12 17 L16 9 L20 17 L25 13 L25 23 Z' fill='%23120e07'/%3E%3Ccircle cx='16' cy='9' r='2.2' fill='%23120e07'/%3E%3C/svg%3E" />
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='32' fill='%23ffd700'/%3E%3Cpath d='M40 130 L40 75 L68 96 L90 50 L112 96 L140 75 L140 130 Z' fill='%23120e07'/%3E%3Ccircle cx='90' cy='50' r='11' fill='%23120e07'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -147,6 +146,28 @@
   }
   .sort-btn:hover{ background: var(--bg-hover); border-color: var(--accent); }
   .sort-btn.active{ border-color: var(--accent); color: var(--accent); }
+  .view-toggle{
+    display:flex;
+    gap: 2px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+  .view-toggle-btn{
+    width: 32px;
+    height: 30px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .view-toggle-btn:hover{ color: var(--text); }
+  .view-toggle-btn.active{ background: var(--bg-hover); color: var(--accent); }
   .toolbar-toggle{
     display:flex;
     align-items:center;
@@ -170,6 +191,54 @@
     grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
     gap: 12px;
   }
+  .royals-grid.list-view{
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .royal-row-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 14px;
+    padding: 11px 16px;
+  }
+  .royal-row-item .row-main{
+    display:flex;
+    align-items:baseline;
+    gap: 12px;
+    min-width: 0;
+    flex: 1;
+  }
+  .royal-row-item .row-name{
+    font-weight: 600;
+    color: var(--text);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .royal-row-item .row-sub{
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .royal-row-item .row-badges{ display:flex; gap:6px; flex-shrink:0; }
+  .dynasty-row-item{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 16px;
+    padding: 11px 16px;
+  }
+  .dynasty-row-item .row-main{ display:flex; align-items:baseline; gap:12px; min-width:0; flex:1; }
+  .dynasty-row-item .row-name{ font-weight:600; color:var(--text); font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dynasty-row-item .row-sub{ font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dynasty-row-item .row-stats{ display:flex; gap:16px; flex-shrink:0; font-size:0.76rem; color:var(--text-muted); }
+  .dynasty-row-item .row-stats strong{ color:var(--text); font-weight:500; }
+  .dynasty-row-item .row-count{ font-size:0.76rem; color:var(--text-muted); flex-shrink:0; white-space:nowrap; }
   .royal-card{
     position: relative;
     z-index: 1;
@@ -644,13 +713,21 @@
         </button>
         <button class="sort-btn" id="royals-sort-name" data-dir="asc">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
-          <span id="royals-sort-name-label">A-Z</span>
+          <span id="royals-sort-name-label">Last name A-Z</span>
         </button>
         <label class="toolbar-toggle">
           <input type="checkbox" id="hide-deceased-toggle" />
           Hide deceased
         </label>
         <button class="labeled-btn danger" id="remove-all-btn">Remove All</button>
+        <div class="view-toggle noble-view-toggle">
+          <button class="view-toggle-btn noble-view-btn active" data-mode="cards" aria-label="Card view" data-tooltip="Cards">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          </button>
+          <button class="view-toggle-btn noble-view-btn" data-mode="list" aria-label="List view" data-tooltip="List">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+          </button>
+        </div>
       </div>
       <div class="royals-grid" id="royals-grid"></div>
       <div id="royals-sentinel" style="height:1px;"></div>
@@ -661,6 +738,16 @@
       <div class="view-head">
         <h2>Dynasties</h2>
       </div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <div class="view-toggle dynasty-view-toggle">
+          <button class="view-toggle-btn dynasty-view-btn active" data-mode="cards" aria-label="Card view" data-tooltip="Cards">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          </button>
+          <button class="view-toggle-btn dynasty-view-btn" data-mode="list" aria-label="List view" data-tooltip="List">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="royals-grid" id="dynasties-grid"></div>
     </section>
 
@@ -669,6 +756,16 @@
       <button class="back-btn" id="dynasty-detail-back">&larr; Back to Dynasties</button>
       <div class="view-head">
         <h2 id="dynasty-detail-heading">Dynasty</h2>
+      </div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <div class="view-toggle noble-view-toggle">
+          <button class="view-toggle-btn noble-view-btn active" data-mode="cards" aria-label="Card view" data-tooltip="Cards">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          </button>
+          <button class="view-toggle-btn noble-view-btn" data-mode="list" aria-label="List view" data-tooltip="List">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+          </button>
+        </div>
       </div>
       <div class="royals-grid" id="dynasty-royals-grid"></div>
     </section>
@@ -917,6 +1014,7 @@ document.getElementById("dynasty-detail-back").addEventListener("click", closeDy
 let editingId = null;
 let editReturnView = "roster";
 let editingOriginalName = "";
+let editingOriginalSpouse = "";
 
 function resetFormToAddMode(){
   editingId = null;
@@ -935,6 +1033,7 @@ function openEditForm(id, returnView){
   editingId = id;
   editReturnView = returnView;
   editingOriginalName = fullName(s);
+  editingOriginalSpouse = s.spouse || "";
   document.getElementById("name-duplicate-error").hidden = true;
 
   document.getElementById("f-first").value = s.firstName || "";
@@ -1121,6 +1220,69 @@ function buildRoyalCardHTML(s){
   `;
 }
 
+// Compact list-row alternative to buildRoyalCardHTML. Reuses the same
+// .royal-card / data-open / .card-menu / data-edit / data-delete contract so
+// wireRoyalCards() drives both view modes without any extra code.
+function buildRoyalRowHTML(s){
+  const isDeceased = isDeceasedSim(s);
+  const badge = maritalBadge(s);
+  const role = normalizeDynastyRole(s.dynastyRole);
+  const roleLine = s.dynasty ? [s.dynasty, role].filter(Boolean).join(", ") : "";
+
+  return `
+    <div class="royal-card royal-row-item${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
+      <div class="row-main">
+        <span class="row-name">${escapeHtml(displayName(s) || "(unnamed)")}</span>
+        ${roleLine ? `<span class="row-sub">${escapeHtml(roleLine)}</span>` : ''}
+      </div>
+      <div class="row-badges">
+        <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge age">${normalizeAge(s.age)}</span>
+        <span class="badge ${badge.cls}">${badge.label}</span>
+        ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
+      </div>
+      <div class="card-menu">
+        <button class="icon-btn" data-menu-toggle="${s.id}" data-tooltip="More" aria-label="More options">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="3" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="8" cy="13" r="1.3"/></svg>
+        </button>
+        <div class="card-menu-dropdown" data-menu="${s.id}" hidden>
+          <button data-edit="${s.id}">Edit</button>
+          <button class="danger" data-delete="${s.id}">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- View mode (cards / list) ---------------- */
+let nobleViewMode = "cards";
+let dynastyViewMode = "cards";
+
+function updateViewToggleUI(){
+  document.querySelectorAll(".noble-view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mode === nobleViewMode);
+  });
+  document.querySelectorAll(".dynasty-view-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.mode === dynastyViewMode);
+  });
+}
+
+document.querySelectorAll(".noble-view-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    nobleViewMode = btn.dataset.mode;
+    updateViewToggleUI();
+    renderRoster();
+    renderDynastyDetail();
+  });
+});
+document.querySelectorAll(".dynasty-view-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    dynastyViewMode = btn.dataset.mode;
+    updateViewToggleUI();
+    renderDynasties();
+  });
+});
+
 // Wires up click/keyboard/menu/edit/delete behavior for every royal-card
 // inside a container. editReturnView controls which view Save/Cancel lands
 // back on when editing from this particular container.
@@ -1185,7 +1347,7 @@ function renderRoster(){
 
   rows.sort((a, b) => {
     if (sortMode === "name"){
-      const cmp = fullName(a).localeCompare(fullName(b));
+      const cmp = (a.lastName || "").localeCompare(b.lastName || "") || (a.firstName || "").localeCompare(b.firstName || "");
       return nameDir === "asc" ? cmp : -cmp;
     }
     const diff = tsMillis(a.createdAt) - tsMillis(b.createdAt);
@@ -1202,7 +1364,9 @@ function renderRoster(){
   const hasMore = rows.length > visibleCount;
   const visibleRows = rows.slice(0, visibleCount);
 
-  list.innerHTML = visibleRows.map(buildRoyalCardHTML).join("");
+  list.classList.toggle("list-view", nobleViewMode === "list");
+  const builder = nobleViewMode === "list" ? buildRoyalRowHTML : buildRoyalCardHTML;
+  list.innerHTML = visibleRows.map(builder).join("");
   wireRoyalCards(list, "roster");
 
   const observer = ensureScrollObserver();
@@ -1235,6 +1399,8 @@ function renderDynasties(){
     return;
   }
 
+  container.classList.toggle("list-view", dynastyViewMode === "list");
+
   container.innerHTML = dynastyList.map(g => {
     const founder = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Founder");
     const head = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Head");
@@ -1243,6 +1409,25 @@ function renderDynasties(){
     g.members.forEach(m => { if (m.realm) realmCounts[m.realm] = (realmCounts[m.realm] || 0) + 1; });
     const realm = (founder && founder.realm) || (head && head.realm) ||
       Object.keys(realmCounts).sort((a, b) => realmCounts[b] - realmCounts[a])[0] || "";
+    const memberLabel = `${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}`;
+
+    if (dynastyViewMode === "list"){
+      const statParts = [
+        founder ? `Founder: <strong>${escapeHtml(displayName(founder))}</strong>` : '',
+        head ? `Head: <strong>${escapeHtml(displayName(head))}</strong>` : '',
+        heir ? `Heir: <strong>${escapeHtml(displayName(heir))}</strong>` : ''
+      ].filter(Boolean).join(" &nbsp;·&nbsp; ");
+      return `
+      <div class="royal-card dynasty-row-item" tabindex="0" role="button" data-dynasty="${escapeHtml(g.displayName)}">
+        <div class="row-main">
+          <span class="row-name">${escapeHtml(g.displayName)}</span>
+          ${realm ? `<span class="row-sub">${escapeHtml(realm)}</span>` : ''}
+        </div>
+        ${statParts ? `<div class="row-stats">${statParts}</div>` : ''}
+        <div class="row-count">${memberLabel}</div>
+      </div>
+    `;
+    }
 
     const statRow = (label, person) => person
       ? `<div class="dynasty-stat"><label>${label}</label><span>${escapeHtml(displayName(person))}</span></div>`
@@ -1254,7 +1439,7 @@ function renderDynasties(){
       <div class="name">${escapeHtml(g.displayName)}</div>
       ${realm ? `<div class="subline">${escapeHtml(realm)}</div>` : ''}
       ${stats ? `<div class="dynasty-stats">${stats}</div>` : ''}
-      <div class="dynasty-count">${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}</div>
+      <div class="dynasty-count">${memberLabel}</div>
     </div>
   `;
   }).join("");
@@ -1283,7 +1468,9 @@ function renderDynastyDetail(){
   }
   members.sort((a, b) => fullName(a).localeCompare(fullName(b)));
 
-  container.innerHTML = members.map(buildRoyalCardHTML).join("");
+  container.classList.toggle("list-view", nobleViewMode === "list");
+  const builder = nobleViewMode === "list" ? buildRoyalRowHTML : buildRoyalCardHTML;
+  container.innerHTML = members.map(builder).join("");
   wireRoyalCards(container, "dynasty-detail");
 }
 
@@ -1354,7 +1541,7 @@ function updateSortButtonsUI(){
   dateBtn.classList.toggle("active", sortMode === "date");
   nameBtn.classList.toggle("active", sortMode === "name");
   document.getElementById("royals-sort-date-label").textContent = dateDir === "desc" ? "Newest first" : "Oldest first";
-  document.getElementById("royals-sort-name-label").textContent = nameDir === "asc" ? "A-Z" : "Z-A";
+  document.getElementById("royals-sort-name-label").textContent = nameDir === "asc" ? "Last name A-Z" : "Last name Z-A";
 }
 
 document.getElementById("royals-sort-date").addEventListener("click", () => {
@@ -1599,6 +1786,33 @@ async function cascadeSiblingSync(savedId, savedName, siblingsText){
   return count;
 }
 
+// Keeps a marriage two-way when Spouse is edited by hand rather than through
+// the matchmaker's Arrange Marriage flow. If the Spouse field changed,
+// updates the new spouse's own Spouse/Marital status to match, and clears
+// the old spouse's if they used to point back here.
+async function cascadeSpouseSync(savedId, savedName, newSpouse, oldSpouse){
+  let count = 0;
+  const newNorm = normalizeName(newSpouse);
+  const oldNorm = normalizeName(oldSpouse);
+  if (newNorm === oldNorm) return 0;
+
+  if (newSpouse){
+    const match = SIMS.find(s => s.id !== savedId && normalizeName(fullName(s)) === newNorm);
+    if (match && normalizeName(match.spouse) !== normalizeName(savedName)){
+      await updateDoc(doc(db, "sims", match.id), { spouse: savedName, maritalStatus: "Married" });
+      count++;
+    }
+  }
+  if (oldSpouse){
+    const oldMatch = SIMS.find(s => s.id !== savedId && normalizeName(fullName(s)) === oldNorm);
+    if (oldMatch && normalizeName(oldMatch.spouse) === normalizeName(savedName)){
+      await updateDoc(doc(db, "sims", oldMatch.id), { spouse: "", maritalStatus: "" });
+      count++;
+    }
+  }
+  return count;
+}
+
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorBox = document.getElementById("name-duplicate-error");
@@ -1641,9 +1855,11 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       await updateDoc(doc(db, "sims", editingId), payload);
       const renamedCount = await cascadeRename(editingId, editingOriginalName, fullName(payload));
       const siblingCount = await cascadeSiblingSync(editingId, fullName(payload), payload.siblings);
+      const spouseCount = await cascadeSpouseSync(editingId, fullName(payload), payload.spouse, editingOriginalSpouse);
       const notes = [];
       if (renamedCount) notes.push(`updated ${renamedCount} other ${renamedCount === 1 ? 'entry' : 'entries'} that referenced the old name`);
       if (siblingCount) notes.push(`added them to ${siblingCount} sibling ${siblingCount === 1 ? 'entry' : 'entries'}`);
+      if (spouseCount) notes.push(`updated their spouse's entry to match`);
       showToast(notes.length ? `Changes saved, ${notes.join(', and ')}.` : "Changes saved.");
       const returnTo = editReturnView;
       resetFormToAddMode();
@@ -1654,6 +1870,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       payload.createdAt = serverTimestamp();
       const docRef = await addDoc(simsCol, payload);
       const siblingCount = await cascadeSiblingSync(docRef.id, fullName(payload), payload.siblings);
+      await cascadeSpouseSync(docRef.id, fullName(payload), payload.spouse, "");
       e.target.reset();
       showToast(siblingCount
         ? `${displayName(payload)} added to the ledger, and added to ${siblingCount} sibling ${siblingCount === 1 ? 'entry' : 'entries'}.`
