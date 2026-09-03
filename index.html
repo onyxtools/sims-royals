@@ -1260,6 +1260,7 @@ function renderDetail(){
         ${subline ? `<div class="detail-subtitle">${escapeHtml(subline)}</div>` : ''}
         <div class="detail-badges">
           <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+          <span class="badge age">${normalizeAge(s.age)}</span>
           <span class="badge ${badge.cls}">${badge.label}</span>
           ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
         </div>
@@ -1270,7 +1271,6 @@ function renderDetail(){
       <h3>Overview</h3>
       <div class="detail-grid">
         ${field('Title', s.title)}
-        ${field('Age', s.age)}
         ${field('Dynasty', s.dynasty)}
         ${field('Dynasty role', s.dynastyRole)}
         ${field('Kingdom', s.realm)}
