@@ -447,6 +447,50 @@
   .detail-field label{ display:block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 3px; }
   .detail-field .value{ font-size: 0.78rem; color: var(--text); }
   .not-recorded{ font-size: 0.7rem; font-style: italic; color: #5f5741; }
+  .family-tree{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap: 4px;
+    padding: 10px 0 50px;
+  }
+  .tree-generation{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .tree-connector{ width:1px; height:20px; background:var(--border); }
+  .tree-gen-label{
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+  }
+  .tree-gen-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:10px; max-width: 900px; }
+  .tree-node{
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    cursor:pointer;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .tree-node:hover{ border-color: var(--accent); background: var(--bg-hover); }
+  .tree-node.deceased{ opacity: 0.55; }
+  .tree-center-row{ display:flex; align-items:center; gap:10px; }
+  .tree-node-main{
+    background: var(--accent);
+    color: #120e07;
+    border-color: var(--accent);
+    font-weight: 600;
+    padding: 10px 18px;
+    cursor: default;
+  }
+  .tree-node-main:hover{
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .tree-spouse-link{ color: var(--text-muted); font-size: 1rem; }
+  .tree-siblings-row{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-bottom:2px; }
+  .tree-siblings-row .tree-node{ font-size: 0.76rem; padding: 6px 12px; opacity: 0.85; }
   .detail-notes-view{
     font-size: 0.88rem;
     line-height: 1.7;
@@ -770,6 +814,16 @@
       <div id="detail-content"></div>
     </section>
 
+    <!-- FAMILY TREE -->
+    <section class="view" id="view-family-tree">
+      <button class="back-btn" id="family-tree-back">&larr; Back</button>
+      <div class="view-head">
+        <h2>Family Tree</h2>
+        <p>Click anyone in the tree to re-center it on them. Shows up to three generations up and down.</p>
+      </div>
+      <div class="family-tree" id="family-tree-content"></div>
+    </section>
+
     <!-- ADD -->
     <section class="view" id="view-add">
       <div class="view-head">
@@ -1004,6 +1058,153 @@ function closeDynastyDetail(){
 }
 document.getElementById("dynasty-detail-back").addEventListener("click", closeDynastyDetail);
 
+/* ---------------- Family Tree ---------------- */
+const TREE_MAX_DEPTH = 3;
+
+function getParentsOf(person){
+  const father = person.father ? SIMS.find(s => normalizeName(fullName(s)) === normalizeName(person.father)) : null;
+  const mother = person.mother ? SIMS.find(s => normalizeName(fullName(s)) === normalizeName(person.mother)) : null;
+  return { father, mother };
+}
+
+function getChildrenOf(person){
+  const personName = normalizeName(fullName(person));
+  const listedKids = (person.children || "").split(",").map(n => n.trim()).filter(Boolean)
+    .map(name => SIMS.find(s => normalizeName(fullName(s)) === normalizeName(name)))
+    .filter(Boolean);
+  const reverseKids = personName ? SIMS.filter(s =>
+    (s.father && normalizeName(s.father) === personName) || (s.mother && normalizeName(s.mother) === personName)
+  ) : [];
+  const byId = {};
+  [...listedKids, ...reverseKids].forEach(k => { byId[k.id] = k; });
+  return Object.values(byId);
+}
+
+function getSiblingsOf(person){
+  const personName = normalizeName(fullName(person));
+  const listed = (person.siblings || "").split(",").map(n => n.trim()).filter(Boolean)
+    .map(name => SIMS.find(s => normalizeName(fullName(s)) === normalizeName(name)))
+    .filter(Boolean);
+  const listedBy = personName ? SIMS.filter(s =>
+    (s.siblings || "").split(",").map(n => normalizeName(n)).filter(Boolean).includes(personName)
+  ) : [];
+  const byId = {};
+  [...listed, ...listedBy].forEach(s => { if (s.id !== person.id) byId[s.id] = s; });
+  return Object.values(byId);
+}
+
+// Ancestors form a strict binary tree (everyone has at most 2 parents), so
+// this just doubles each generation: [parents], [grandparents], [g-grandparents].
+function getAncestorGenerations(person, maxDepth){
+  let currentLevel = [person];
+  const generations = [];
+  for (let d = 0; d < maxDepth; d++){
+    const nextLevel = [];
+    currentLevel.forEach(p => {
+      const { father, mother } = getParentsOf(p);
+      if (father) nextLevel.push(father);
+      if (mother) nextLevel.push(mother);
+    });
+    if (!nextLevel.length) break;
+    generations.push(nextLevel);
+    currentLevel = nextLevel;
+  }
+  return generations;
+}
+
+// Descendants can branch (multiple children), so this tracks visited ids to
+// avoid double-counting if two lines reconverge (e.g. cousin marriages).
+function getDescendantGenerations(person, maxDepth){
+  let currentLevel = [person];
+  const generations = [];
+  const visited = new Set([person.id]);
+  for (let d = 0; d < maxDepth; d++){
+    const nextLevel = [];
+    currentLevel.forEach(p => {
+      getChildrenOf(p).forEach(child => {
+        if (!visited.has(child.id)){ visited.add(child.id); nextLevel.push(child); }
+      });
+    });
+    if (!nextLevel.length) break;
+    generations.push(nextLevel);
+    currentLevel = nextLevel;
+  }
+  return generations;
+}
+
+function treeNodeHTML(person, extraClass, skipRecenter){
+  const isDeceased = isDeceasedSim(person);
+  const cls = ["tree-node", extraClass, isDeceased ? "deceased" : ""].filter(Boolean).join(" ");
+  const recenterAttr = skipRecenter ? "" : ` data-recenter="${person.id}"`;
+  return `<button type="button" class="${cls}"${recenterAttr}${skipRecenter ? ' tabindex="-1"' : ''}>${escapeHtml(displayName(person) || "(unnamed)")}</button>`;
+}
+
+function renderTreeGenerationRow(label, people){
+  if (!people.length) return "";
+  return `
+    <div class="tree-generation">
+      <div class="tree-gen-label">${escapeHtml(label)}</div>
+      <div class="tree-gen-row">${people.map(p => treeNodeHTML(p)).join("")}</div>
+    </div>
+  `;
+}
+
+let familyTreeCenterId = null;
+function openFamilyTree(id){
+  familyTreeCenterId = id;
+  showView("family-tree");
+  renderFamilyTree();
+}
+function closeFamilyTree(){
+  if (familyTreeCenterId) openDetail(familyTreeCenterId);
+  else showView("roster");
+}
+document.getElementById("family-tree-back").addEventListener("click", closeFamilyTree);
+
+function renderFamilyTree(){
+  const container = document.getElementById("family-tree-content");
+  const person = SIMS.find(s => s.id === familyTreeCenterId);
+  if (!person){
+    container.innerHTML = `<div class="empty-state">This royal no longer exists in the ledger.</div>`;
+    return;
+  }
+
+  const ancestorGens = getAncestorGenerations(person, TREE_MAX_DEPTH);
+  const descendantGens = getDescendantGenerations(person, TREE_MAX_DEPTH);
+  const siblings = getSiblingsOf(person);
+  const spouse = person.spouse ? SIMS.find(s => normalizeName(fullName(s)) === normalizeName(person.spouse)) : null;
+
+  const ancestorLabels = ["Parents", "Grandparents", "Great-Grandparents"];
+  const descendantLabels = ["Children", "Grandchildren", "Great-Grandchildren"];
+
+  const sections = [];
+  for (let i = ancestorGens.length - 1; i >= 0; i--){
+    sections.push(renderTreeGenerationRow(ancestorLabels[i], ancestorGens[i]));
+  }
+
+  const isDeceased = isDeceasedSim(person);
+  sections.push(`
+    <div class="tree-generation">
+      ${siblings.length ? `<div class="tree-siblings-row">${siblings.map(p => treeNodeHTML(p)).join("")}</div>` : ''}
+      <div class="tree-center-row">
+        ${treeNodeHTML(person, "tree-node-main", true)}
+        ${spouse ? `<span class="tree-spouse-link">&#9901;</span>${treeNodeHTML(spouse)}` : ''}
+      </div>
+    </div>
+  `);
+
+  descendantGens.forEach((gen, i) => sections.push(renderTreeGenerationRow(descendantLabels[i], gen)));
+
+  container.innerHTML = sections.filter(Boolean).join(`<div class="tree-connector"></div>`);
+
+  container.querySelectorAll("[data-recenter]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      familyTreeCenterId = btn.dataset.recenter;
+      renderFamilyTree();
+    });
+  });
+}
+
 let editingId = null;
 let editReturnView = "roster";
 let editingOriginalName = "";
@@ -1071,6 +1272,7 @@ onSnapshot(simsCol, snap => {
   if (document.getElementById("view-detail").classList.contains("active")) renderDetail();
   if (document.getElementById("view-dynasties").classList.contains("active")) renderDynasties();
   if (document.getElementById("view-dynasty-detail").classList.contains("active")) renderDynastyDetail();
+  if (document.getElementById("view-family-tree").classList.contains("active")) renderFamilyTree();
 }, err => {
   console.error(err);
   showToast("Connection error. Check your Firebase config.");
@@ -1560,6 +1762,10 @@ function renderDetail(){
           ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
         </div>
       </div>
+      <button class="labeled-btn" id="detail-tree-btn">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="3" r="1.6"/><circle cx="3.5" cy="13" r="1.6"/><circle cx="12.5" cy="13" r="1.6"/><path d="M8 4.6V8M8 8L3.5 11.4M8 8L12.5 11.4"/></svg>
+        View Family Tree
+      </button>
     </div>
 
     <div class="detail-section">
@@ -1589,6 +1795,8 @@ function renderDetail(){
       <div class="detail-notes-view">${s.notes ? escapeHtml(s.notes) : '<span class="not-recorded">No notes</span>'}</div>
     </div>
   `;
+
+  container.querySelector("#detail-tree-btn").addEventListener("click", () => openFamilyTree(s.id));
 }
 
 /* ---------------- Add / Edit form ---------------- */
