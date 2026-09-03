@@ -377,7 +377,7 @@
   .badge.single{ background: rgba(139,147,161,0.14); color: var(--text-muted); }
   .badge.deceased{ background: rgba(239,90,111,0.14); color: var(--danger); }
   .badge.age{ background: rgba(155,140,255,0.15); color: #b3a6ff; }
-  .badge.throne{ background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+  .badge.throne{ background: rgba(255,215,0,0.14); color: #d9b45c; }
   .badge.ineligible{ background: rgba(139,147,161,0.14); color: var(--text-muted); font-style: italic; }
   .empty-state{
     color: var(--text-muted);
@@ -880,11 +880,11 @@
           <div class="field">
             <label for="f-dynasty-role">Dynasty role</label>
             <select id="f-dynasty-role">
-              <option value="Founder">Founder</option>
-              <option value="Head">Head</option>
-              <option value="Heir">Heir</option>
-              <option value="Member" selected>Member</option>
-              <option value="Outcast">Outcast</option>
+              <option value="Founder">Dynasty Founder</option>
+              <option value="Head">Dynasty Head</option>
+              <option value="Heir">Dynasty Heir</option>
+              <option value="Member" selected>Dynasty Member</option>
+              <option value="Outcast">Dynasty Outcast</option>
             </select>
           </div>
         </div>
@@ -1345,6 +1345,14 @@ function normalizeDynastyRole(text){
   const match = DYNASTY_ROLE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Member";
 }
+// Only for display next to a person's name (card sublines, detail page).
+// Prefixed with "Dynasty" so none of these read as a standalone status,
+// most importantly so "Heir" isn't confused with the separate Throne Heir
+// badge. The Dynasties page's own Founder/Head/Heir columns stay as-is
+// since they're already unambiguous there.
+function dynastyRoleDisplayLabel(role){
+  return `Dynasty ${role}`;
+}
 
 const MARITAL_OPTIONS = ["Single", "Single by Choice", "Engaged", "Married", "Separated", "Divorced", "Widowed", "Not Eligible"];
 function normalizeMaritalStatus(text){
@@ -1394,7 +1402,7 @@ function buildRoyalCardHTML(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const roleLine = s.dynasty ? [s.dynasty, role].filter(Boolean).join(", ") : "";
+  const roleLine = s.dynasty ? [s.dynasty, dynastyRoleDisplayLabel(role)].filter(Boolean).join(", ") : "";
 
   return `
     <div class="royal-card${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
@@ -1432,7 +1440,7 @@ function buildRoyalRowHTML(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const roleLine = s.dynasty ? [s.dynasty, role].filter(Boolean).join(", ") : "";
+  const roleLine = s.dynasty ? [s.dynasty, dynastyRoleDisplayLabel(role)].filter(Boolean).join(", ") : "";
 
   return `
     <div class="royal-card royal-row-item${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
@@ -1754,7 +1762,7 @@ function renderDetail(){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const subline = s.dynasty ? [s.dynasty, role].filter(Boolean).join(", ") : "";
+  const subline = s.dynasty ? [s.dynasty, dynastyRoleDisplayLabel(role)].filter(Boolean).join(", ") : "";
 
   const field = (label, value) => `
     <div class="detail-field">
@@ -2240,7 +2248,7 @@ function buildCardPreview(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const metaLine = s.dynasty ? [s.dynasty, role, s.realm].filter(Boolean).join(", ") : (s.realm || "");
+  const metaLine = s.dynasty ? [s.dynasty, dynastyRoleDisplayLabel(role), s.realm].filter(Boolean).join(", ") : (s.realm || "");
   return `
     <div class="modal-name">${escapeHtml(displayName(s) || "(unnamed)")}</div>
     ${metaLine ? `<div class="modal-subline">${escapeHtml(metaLine)}</div>` : ''}
