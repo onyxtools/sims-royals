@@ -100,17 +100,38 @@
     gap: 10px;
     margin-bottom: 22px;
   }
-  .toolbar input[type="search"]{
+  .royals-search-wrap{
+    position: relative;
+    display:flex;
+    align-items:center;
     flex: 1 1 220px;
     min-width: 180px;
+  }
+  .toolbar input[type="search"]{
+    width: 100%;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 9px 12px;
+    padding: 9px 34px 9px 12px;
     border-radius: 5px;
     font-size: 0.85rem;
   }
   .toolbar input[type="search"]:focus{ outline: 1px solid var(--accent); }
+  .search-clear-btn{
+    position: absolute;
+    right: 6px;
+    width: 22px;
+    height: 22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: transparent;
+    color: var(--text-muted);
+    border-radius: 4px;
+  }
+  .search-clear-btn:hover{ background: var(--bg-hover); color: var(--text); }
+  .search-clear-btn[hidden]{ display:none; }
+  input[type="search"]::-webkit-search-cancel-button{ display:none; -webkit-appearance:none; }
   .sort-btn{
     display:flex;
     align-items:center;
@@ -447,15 +468,21 @@
     display:flex;
     flex-direction:column;
   }
+  .candidate-search-wrap{
+    position: relative;
+    display:flex;
+    align-items:center;
+    flex-shrink: 0;
+    margin-bottom: 10px;
+  }
   .candidate-search{
+    width: 100%;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 8px 12px;
+    padding: 8px 34px 8px 12px;
     border-radius: 5px;
     font-size: 0.82rem;
-    margin-bottom: 10px;
-    flex-shrink: 0;
   }
   .candidate-search:focus{ outline: 1px solid var(--accent); }
   .candidate-list{ display:flex; flex-direction:column; gap:8px; flex: 1; overflow-y:auto; padding-right:4px; }
@@ -587,7 +614,12 @@
         <h2>Nobles</h2>
       </div>
       <div class="toolbar">
-        <input type="search" id="royals-search" placeholder="Search anything: name, dynasty, gender, notes…" />
+        <div class="royals-search-wrap">
+          <input type="search" id="royals-search" placeholder="Search anything: name, dynasty, gender, notes…" />
+          <button type="button" class="search-clear-btn" id="royals-search-clear" hidden aria-label="Clear search">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+          </button>
+        </div>
         <button class="sort-btn active" id="royals-sort-date" data-dir="desc">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
           <span id="royals-sort-date-label">Newest first</span>
@@ -755,7 +787,12 @@
       <div class="match-layout">
         <div class="candidate-panel">
           <h3 style="font-size:0.9rem;color:var(--text-muted);font-weight:600;margin-bottom:10px;">Debutantes <span class="nav-count" id="unmarried-count"></span></h3>
-          <input type="search" id="candidate-search" class="candidate-search" placeholder="Search debutantes…" />
+          <div class="candidate-search-wrap">
+            <input type="search" id="candidate-search" class="candidate-search" placeholder="Search debutantes…" />
+            <button type="button" class="search-clear-btn" id="candidate-search-clear" hidden aria-label="Clear search">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            </button>
+          </div>
           <div class="candidate-list" id="candidate-list"></div>
         </div>
         <div>
@@ -1209,6 +1246,15 @@ document.addEventListener("click", () => {
 });
 
 document.getElementById("royals-search").addEventListener("input", () => {
+  document.getElementById("royals-search-clear").hidden = !document.getElementById("royals-search").value;
+  visibleCount = PAGE_SIZE;
+  renderRoster();
+});
+document.getElementById("royals-search-clear").addEventListener("click", () => {
+  const input = document.getElementById("royals-search");
+  input.value = "";
+  input.focus();
+  document.getElementById("royals-search-clear").hidden = true;
   visibleCount = PAGE_SIZE;
   renderRoster();
 });
@@ -1634,6 +1680,15 @@ function ensureCandidateObserver(){
   return candidateObserver;
 }
 document.getElementById("candidate-search").addEventListener("input", () => {
+  document.getElementById("candidate-search-clear").hidden = !document.getElementById("candidate-search").value;
+  candidateVisibleCount = CANDIDATE_PAGE_SIZE;
+  renderMatchmaker();
+});
+document.getElementById("candidate-search-clear").addEventListener("click", () => {
+  const input = document.getElementById("candidate-search");
+  input.value = "";
+  input.focus();
+  document.getElementById("candidate-search-clear").hidden = true;
   candidateVisibleCount = CANDIDATE_PAGE_SIZE;
   renderMatchmaker();
 });
