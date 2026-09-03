@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Kingdoms</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M7 23 L7 13 L12 17 L16 9 L20 17 L25 13 L25 23 Z' fill='%23ffd700' stroke='%235c4a1f' stroke-width='1.2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='9' r='2.2' fill='%23ffd700' stroke='%235c4a1f' stroke-width='1'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='32' fill='%23ffd700'/%3E%3Cpath d='M40 130 L40 75 L68 96 L90 50 L112 96 L140 75 L140 130 Z' fill='%23120e07'/%3E%3Ccircle cx='90' cy='50' r='11' fill='%23120e07'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -160,7 +161,6 @@
     align-items:center;
     gap: 6px;
   }
-  .royal-card .name .note-flag{ color: var(--text-muted); display:flex; flex-shrink:0; }
   .royal-card .subline{
     font-size: 0.76rem;
     color: var(--text-muted);
@@ -197,9 +197,9 @@
     overflow: hidden;
   }
   .dynasty-stats{ margin-top: 12px; display:flex; flex-direction:column; gap: 6px; }
-  .dynasty-stat{ display:flex; justify-content:space-between; gap: 10px; font-size: 0.78rem; }
+  .dynasty-stat{ display:grid; grid-template-columns: 60px 1fr; gap: 10px; font-size: 0.78rem; align-items: baseline; }
   .dynasty-stat label{ color: var(--text-muted); }
-  .dynasty-stat span{ color: var(--text); font-weight: 500; text-align: right; }
+  .dynasty-stat span{ color: var(--text); font-weight: 500; text-align: right; overflow-wrap: break-word; }
   .dynasty-count{
     margin-top: 12px;
     padding-top: 10px;
@@ -259,6 +259,7 @@
   .badge.married{ background: rgba(62,207,142,0.14); color: var(--success); }
   .badge.single{ background: rgba(139,147,161,0.14); color: var(--text-muted); }
   .badge.deceased{ background: rgba(239,90,111,0.14); color: var(--danger); }
+  .badge.age{ background: rgba(155,140,255,0.15); color: #b3a6ff; }
   .badge.ineligible{ background: rgba(139,147,161,0.14); color: var(--text-muted); font-style: italic; }
   .empty-state{
     color: var(--text-muted);
@@ -704,6 +705,7 @@
             <label for="f-marital-status">Marital status</label>
             <select id="f-marital-status">
               <option value="Single">Single</option>
+              <option value="Single by Choice">Single by Choice</option>
               <option value="Engaged">Engaged</option>
               <option value="Married">Married</option>
               <option value="Separated">Separated</option>
@@ -951,22 +953,22 @@ function normalizeDynastyRole(text){
   return match || "Member";
 }
 
-const MARITAL_OPTIONS = ["Single", "Engaged", "Married", "Separated", "Divorced", "Widowed", "Not Eligible"];
+const MARITAL_OPTIONS = ["Single", "Single by Choice", "Engaged", "Married", "Separated", "Divorced", "Widowed", "Not Eligible"];
 function normalizeMaritalStatus(text){
   const match = MARITAL_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Single";
 }
 function isDeceasedSim(s){ return (s.status || "").trim().toLowerCase() === "deceased"; }
-// Eligible for matchmaking: everyone except Engaged, Married, and Not Eligible.
-// Single/Separated/Divorced/Widowed all count, even if the Spouse field
-// wasn't cleared out by hand.
+// Eligible for matchmaking: everyone except Engaged, Married, Single by
+// Choice, and Not Eligible. Single/Separated/Divorced/Widowed all count,
+// even if the Spouse field wasn't cleared out by hand.
 function isEligibleSingle(s){
   const status = normalizeMaritalStatus(s.maritalStatus);
-  return status !== "Engaged" && status !== "Married" && status !== "Not Eligible";
+  return status !== "Engaged" && status !== "Married" && status !== "Single by Choice" && status !== "Not Eligible";
 }
 function maritalBadge(s){
   const status = normalizeMaritalStatus(s.maritalStatus);
-  if (status === "Not Eligible") return { label: status, cls: "ineligible" };
+  if (status === "Not Eligible" || status === "Single by Choice") return { label: status, cls: "ineligible" };
   const cls = (status === "Engaged" || status === "Married") ? "married" : "single";
   return { label: status, cls };
 }
@@ -1005,9 +1007,6 @@ function buildRoyalCardHTML(s){
     <div class="royal-card${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
       <div class="card-top">
         <div class="name">
-          ${s.notes ? `<span class="note-flag" data-tooltip="Has notes">
-            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M5.5 5.5h5M5.5 8h5M5.5 10.5h3"/></svg>
-          </span>` : ''}
           <span>${escapeHtml(displayName(s) || "(unnamed)")}</span>
         </div>
         <div class="card-menu">
@@ -1023,6 +1022,7 @@ function buildRoyalCardHTML(s){
       ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
       <div class="card-badges">
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
+        <span class="badge age">${normalizeAge(s.age)}</span>
         <span class="badge ${badge.cls}">${badge.label}</span>
         ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
       </div>
