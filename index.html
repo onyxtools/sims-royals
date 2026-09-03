@@ -1336,10 +1336,12 @@ function normalizeAge(text){
   const match = AGE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Adult";
 }
-// Children and Teenagers are never eligible for matchmaking at all.
+// Children are never eligible for matchmaking. Teenagers now can be, but
+// only ever paired with other Teenagers, same-age-group rule enforced by
+// the equality check in renderMatchmaker, not here.
 function isMatchableAge(s){
   const age = normalizeAge(s.age);
-  return age === "Adult" || age === "Elder";
+  return age === "Teenager" || age === "Adult" || age === "Elder";
 }
 function normalizeDynastyRole(text){
   const match = DYNASTY_ROLE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
