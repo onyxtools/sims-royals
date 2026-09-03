@@ -377,6 +377,7 @@
   .badge.single{ background: rgba(139,147,161,0.14); color: var(--text-muted); }
   .badge.deceased{ background: rgba(239,90,111,0.14); color: var(--danger); }
   .badge.age{ background: rgba(155,140,255,0.15); color: #b3a6ff; }
+  .badge.throne{ background: transparent; border: 1px solid var(--accent); color: var(--accent); }
   .badge.ineligible{ background: rgba(139,147,161,0.14); color: var(--text-muted); font-style: italic; }
   .empty-state{
     color: var(--text-muted);
@@ -891,6 +892,12 @@
           <label for="f-realm">Kingdom</label>
           <input id="f-realm" placeholder="e.g. Aurelia" />
         </div>
+        <div class="field">
+          <label class="deceased-check">
+            Heir to the Throne
+            <input type="checkbox" id="f-heir-throne" />
+          </label>
+        </div>
 
         <div class="section-divider">Family</div>
         <div class="row-2">
@@ -1240,6 +1247,7 @@ function openEditForm(id, returnView){
   document.getElementById("f-dynasty").value = s.dynasty || "";
   document.getElementById("f-dynasty-role").value = normalizeDynastyRole(s.dynastyRole);
   document.getElementById("f-realm").value = s.realm || "";
+  document.getElementById("f-heir-throne").checked = !!s.heirToThrone;
   document.getElementById("f-father").value = s.father || "";
   document.getElementById("f-mother").value = s.mother || "";
   document.getElementById("f-siblings").value = s.siblings || "";
@@ -1409,6 +1417,7 @@ function buildRoyalCardHTML(s){
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
         <span class="badge age">${normalizeAge(s.age)}</span>
         <span class="badge ${badge.cls}">${badge.label}</span>
+        ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
         ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
       </div>
       ${s.notes ? `<div class="snippet">${escapeHtml(s.notes)}</div>` : ''}
@@ -1435,6 +1444,7 @@ function buildRoyalRowHTML(s){
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
         <span class="badge age">${normalizeAge(s.age)}</span>
         <span class="badge ${badge.cls}">${badge.label}</span>
+        ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
         ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
       </div>
       <div class="card-menu">
@@ -1525,7 +1535,8 @@ function renderRoster(){
       s.father, s.mother, s.siblings, s.maritalStatus, s.spouse, s.children, s.notes,
       s.gender, s.gender === "male" ? "male" : "female",
       isDeceased ? "deceased" : "alive living",
-      isMarried ? "married wed" : "single unmarried"
+      isMarried ? "married wed" : "single unmarried",
+      s.heirToThrone ? "throne heir heir to the throne" : ""
     ].filter(Boolean).join(" ").toLowerCase();
     return haystack.includes(searchTerm);
   });
@@ -1760,6 +1771,7 @@ function renderDetail(){
           <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
           <span class="badge age">${normalizeAge(s.age)}</span>
           <span class="badge ${badge.cls}">${badge.label}</span>
+          ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
           ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
         </div>
       </div>
@@ -2018,6 +2030,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     dynasty: document.getElementById("f-dynasty").value.trim(),
     dynastyRole: document.getElementById("f-dynasty-role").value.trim(),
     realm: document.getElementById("f-realm").value.trim(),
+    heirToThrone: document.getElementById("f-heir-throne").checked,
     father: document.getElementById("f-father").value.trim(),
     mother: document.getElementById("f-mother").value.trim(),
     siblings: document.getElementById("f-siblings").value.trim(),
@@ -2234,6 +2247,7 @@ function buildCardPreview(s){
     <div class="modal-badges">
       <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
       <span class="badge ${badge.cls}">${badge.label}</span>
+      ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
       ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
     </div>
     ${s.notes ? `<div class="modal-snippet">${escapeHtml(s.notes)}</div>` : ''}
