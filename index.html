@@ -226,33 +226,6 @@
     text-overflow: ellipsis;
   }
   .royal-row-item .row-badges{ display:flex; gap:6px; flex-shrink:0; }
-  .dynasty-row-item{
-    display:flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px 16px;
-  }
-  .dynasty-row-top{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 16px;
-  }
-  .dynasty-row-item .row-main{ display:flex; align-items:baseline; gap:12px; min-width:0; flex:1; }
-  .dynasty-row-item .row-name{ font-weight:600; color:var(--text); font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dynasty-row-item .row-sub{ font-size:0.76rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dynasty-row-roles{
-    display:flex;
-    flex-wrap: wrap;
-    gap: 6px 20px;
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border);
-    padding-top: 8px;
-  }
-  .dynasty-row-roles strong{ color:var(--text); font-weight:500; }
-  .dynasty-row-roles .not-recorded{ font-size: inherit; }
-  .dynasty-row-item .row-count{ font-size:0.76rem; color:var(--text-muted); flex-shrink:0; white-space:nowrap; }
   .royal-card{
     position: relative;
     z-index: 1;
@@ -839,7 +812,13 @@
       <div class="view-head">
         <h2>Dynasties</h2>
       </div>
-      <div class="toolbar" style="justify-content:flex-end;">
+      <div class="toolbar">
+        <div class="royals-search-wrap">
+          <input type="search" id="dynasty-search" placeholder="Search dynasties…" />
+          <button type="button" class="search-clear-btn" id="dynasty-search-clear" hidden aria-label="Clear search">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+          </button>
+        </div>
         <button class="sort-btn active" id="dynasty-sort-name" data-dir="asc">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
           <span id="dynasty-sort-name-label">Name A-Z</span>
@@ -849,7 +828,7 @@
           <span id="dynasty-sort-members-label">Most members</span>
         </button>
       </div>
-      <div class="royals-grid list-view" id="dynasties-grid"></div>
+      <div class="royals-grid" id="dynasties-grid"></div>
     </section>
 
     <!-- DYNASTY DETAIL -->
@@ -876,7 +855,13 @@
       <div class="view-head">
         <h2>Royal Families</h2>
       </div>
-      <div class="toolbar" style="justify-content:flex-end;">
+      <div class="toolbar">
+        <div class="royals-search-wrap">
+          <input type="search" id="realm-search" placeholder="Search realms…" />
+          <button type="button" class="search-clear-btn" id="realm-search-clear" hidden aria-label="Clear search">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+          </button>
+        </div>
         <button class="sort-btn active" id="realm-sort-name" data-dir="asc">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
           <span id="realm-sort-name-label">Name A-Z</span>
@@ -1188,14 +1173,16 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 let selectedDetailId = null;
-function openDetail(id){
+let detailReturnView = "roster";
+function openDetail(id, returnView){
   selectedDetailId = id;
+  detailReturnView = returnView || "roster";
   showView("detail");
   renderDetail();
 }
 function closeDetail(){
   selectedDetailId = null;
-  showView("roster");
+  showView(detailReturnView);
 }
 document.getElementById("detail-back").addEventListener("click", closeDetail);
 
@@ -1315,14 +1302,16 @@ function renderTreeGenerationRow(label, people){
 }
 
 let familyTreeCenterId = null;
+let familyTreeReturnView = "roster";
 function openFamilyTree(id){
   familyTreeCenterId = id;
+  familyTreeReturnView = detailReturnView;
   showView("family-tree");
   renderFamilyTree();
 }
 function closeFamilyTree(){
-  if (familyTreeCenterId) openDetail(familyTreeCenterId);
-  else showView("roster");
+  if (familyTreeCenterId) openDetail(familyTreeCenterId, familyTreeReturnView);
+  else showView(familyTreeReturnView);
 }
 document.getElementById("family-tree-back").addEventListener("click", closeFamilyTree);
 
@@ -1814,13 +1803,13 @@ document.querySelectorAll(".noble-view-btn").forEach(btn => {
 });
 
 // Wires up click/keyboard/menu/edit/delete behavior for every royal-card
-// inside a container. editReturnView controls which view Save/Cancel lands
-// back on when editing from this particular container.
+// inside a container. editReturnView controls which view Save/Cancel (and
+// now also the detail page's Back button) lands back on.
 function wireRoyalCards(container, editReturnView){
   container.querySelectorAll(".royal-card").forEach(card => {
-    card.addEventListener("click", () => openDetail(card.dataset.open));
+    card.addEventListener("click", () => openDetail(card.dataset.open, editReturnView));
     card.addEventListener("keydown", e => {
-      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDetail(card.dataset.open); }
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openDetail(card.dataset.open, editReturnView); }
     });
   });
 
@@ -1919,6 +1908,10 @@ function getDynastyGroups(){
   return Object.values(groups);
 }
 
+const ROYAL_TITLES = ["king", "queen", "prince", "princess"];
+function isRoyalFamilyTitle(person){
+  return ROYAL_TITLES.includes((person.title || "").trim().toLowerCase());
+}
 function getRealmGroups(){
   const groups = {};
   SIMS.forEach(s => {
@@ -1959,11 +1952,30 @@ document.getElementById("dynasty-sort-members").addEventListener("click", () => 
 });
 updateDynastySortUI();
 
+document.getElementById("dynasty-search").addEventListener("input", () => {
+  document.getElementById("dynasty-search-clear").hidden = !document.getElementById("dynasty-search").value;
+  renderDynasties();
+});
+document.getElementById("dynasty-search-clear").addEventListener("click", () => {
+  const input = document.getElementById("dynasty-search");
+  input.value = "";
+  input.focus();
+  document.getElementById("dynasty-search-clear").hidden = true;
+  renderDynasties();
+});
+
 function renderDynasties(){
   const container = document.getElementById("dynasties-grid");
 
   const dynastyList = getDynastyGroups();
-  dynastyList.sort((a, b) => {
+  document.getElementById("nav-dynasties-count").textContent = `(${dynastyList.length})`;
+
+  const searchTerm = document.getElementById("dynasty-search").value.trim().toLowerCase();
+  let visibleList = searchTerm
+    ? dynastyList.filter(g => g.displayName.toLowerCase().includes(searchTerm))
+    : dynastyList;
+
+  visibleList.sort((a, b) => {
     if (dynastySortMode === "members"){
       const diff = a.members.length - b.members.length;
       if (diff !== 0) return dynastyMembersDir === "desc" ? -diff : diff;
@@ -1973,39 +1985,17 @@ function renderDynasties(){
     return dynastyNameDir === "asc" ? cmp : -cmp;
   });
 
-  document.getElementById("nav-dynasties-count").textContent = `(${dynastyList.length})`;
-
-  if (!dynastyList.length){
-    container.innerHTML = `<div class="empty-state">No dynasties yet. Give a noble a Dynasty name to start one.</div>`;
+  if (!visibleList.length){
+    container.innerHTML = `<div class="empty-state">${searchTerm ? 'No dynasties match your search.' : 'No dynasties yet. Give a noble a Dynasty name to start one.'}</div>`;
     return;
   }
 
-  container.innerHTML = dynastyList.map(g => {
-    const founder = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Founder");
-    const head = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Head");
-    const heir = g.members.find(m => normalizeDynastyRole(m.dynastyRole) === "Heir");
-    const realmCounts = {};
-    g.members.forEach(m => { if (m.realm) realmCounts[m.realm] = (realmCounts[m.realm] || 0) + 1; });
-    const realm = (founder && founder.realm) || (head && head.realm) ||
-      Object.keys(realmCounts).sort((a, b) => realmCounts[b] - realmCounts[a])[0] || "";
+  container.innerHTML = visibleList.map(g => {
     const memberLabel = `${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}`;
-    const none = '<em class="not-recorded">None recorded</em>';
-    const roleValue = person => person ? escapeHtml(displayName(person)) : none;
-
     return `
-    <div class="royal-card dynasty-row-item" tabindex="0" role="button" data-dynasty="${escapeHtml(g.displayName)}">
-      <div class="dynasty-row-top">
-        <div class="row-main">
-          <span class="row-name">${escapeHtml(g.displayName)}</span>
-          ${realm ? `<span class="row-sub">${escapeHtml(realm)}</span>` : ''}
-        </div>
-        <div class="row-count">${memberLabel}</div>
-      </div>
-      <div class="dynasty-row-roles">
-        <span>Founder: <strong>${roleValue(founder)}</strong></span>
-        <span>Head: <strong>${roleValue(head)}</strong></span>
-        <span>Heir: <strong>${roleValue(heir)}</strong></span>
-      </div>
+    <div class="royal-card" tabindex="0" role="button" data-dynasty="${escapeHtml(g.displayName)}">
+      <div class="name">${escapeHtml(g.displayName)}</div>
+      <div class="subline">${memberLabel}</div>
     </div>
   `;
   }).join("");
@@ -2069,11 +2059,30 @@ document.getElementById("realm-sort-members").addEventListener("click", () => {
 });
 updateRealmSortUI();
 
+document.getElementById("realm-search").addEventListener("input", () => {
+  document.getElementById("realm-search-clear").hidden = !document.getElementById("realm-search").value;
+  renderRealms();
+});
+document.getElementById("realm-search-clear").addEventListener("click", () => {
+  const input = document.getElementById("realm-search");
+  input.value = "";
+  input.focus();
+  document.getElementById("realm-search-clear").hidden = true;
+  renderRealms();
+});
+
 function renderRealms(){
   const container = document.getElementById("realms-grid");
 
   const realmList = getRealmGroups();
-  realmList.sort((a, b) => {
+  document.getElementById("nav-realms-count").textContent = `(${realmList.length})`;
+
+  const searchTerm = document.getElementById("realm-search").value.trim().toLowerCase();
+  let visibleList = searchTerm
+    ? realmList.filter(g => g.displayName.toLowerCase().includes(searchTerm))
+    : realmList;
+
+  visibleList.sort((a, b) => {
     if (realmSortMode === "members"){
       const diff = a.members.length - b.members.length;
       if (diff !== 0) return realmMembersDir === "desc" ? -diff : diff;
@@ -2083,18 +2092,20 @@ function renderRealms(){
     return realmNameDir === "asc" ? cmp : -cmp;
   });
 
-  document.getElementById("nav-realms-count").textContent = `(${realmList.length})`;
-
-  if (!realmList.length){
-    container.innerHTML = `<div class="empty-state">No realms yet. Give a noble a Kingdom name to start one.</div>`;
+  if (!visibleList.length){
+    container.innerHTML = `<div class="empty-state">${searchTerm ? 'No realms match your search.' : 'No realms yet. Give a noble a Kingdom name to start one.'}</div>`;
     return;
   }
 
-  container.innerHTML = realmList.map(g => `
+  container.innerHTML = visibleList.map(g => {
+    const royalCount = g.members.filter(isRoyalFamilyTitle).length;
+    return `
     <div class="royal-card" tabindex="0" role="button" data-realm="${escapeHtml(g.displayName)}">
       <div class="name">${escapeHtml(g.displayName)}</div>
+      <div class="subline">${royalCount} royal ${royalCount === 1 ? 'member' : 'members'}</div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   container.querySelectorAll(".royal-card").forEach(card => {
     card.addEventListener("click", () => openRealmDetail(card.dataset.realm));
@@ -2113,10 +2124,9 @@ function renderRealmDetail(){
   }
   heading.textContent = selectedRealmName;
 
-  const ROYAL_TITLES = ["king", "queen", "prince", "princess"];
   const members = SIMS.filter(s =>
     normalizeName(s.realm) === normalizeName(selectedRealmName) &&
-    ROYAL_TITLES.includes((s.title || "").trim().toLowerCase())
+    isRoyalFamilyTitle(s)
   );
   if (!members.length){
     container.innerHTML = `<div class="empty-state">No King, Queen, Prince, or Princess recorded for this realm yet.</div>`;
