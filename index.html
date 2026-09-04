@@ -566,6 +566,23 @@
     font-size: 0.92rem;
   }
   .field input:focus, .field select:focus{ outline: 1px solid var(--accent); }
+  .field-with-dice{ display:flex; gap: 8px; align-items:center; }
+  .field-with-dice input{ flex: 1; min-width: 0; }
+  .dice-btn{
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    border-radius: 5px;
+    transition: border-color 0.12s, color 0.12s, transform 0.12s;
+  }
+  .dice-btn:hover{ border-color: var(--accent); color: var(--accent); }
+  .dice-btn:active{ transform: rotate(20deg); }
   .field textarea{
     background: var(--bg-elevated);
     border: 1px solid var(--border);
@@ -950,6 +967,44 @@
             Heir to the Throne
             <input type="checkbox" id="f-heir-throne" />
           </label>
+        </div>
+
+        <div class="section-divider">Personality</div>
+        <div class="field">
+          <label for="f-trait1">Trait 1</label>
+          <div class="field-with-dice">
+            <input id="f-trait1" placeholder="e.g. Ambitious" />
+            <button type="button" class="dice-btn" data-randomize="trait1" aria-label="Randomize Trait 1" data-tooltip="Randomize">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><circle cx="5.5" cy="5.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="10.5" cy="10.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-trait2">Trait 2</label>
+          <div class="field-with-dice">
+            <input id="f-trait2" placeholder="e.g. Cheerful" />
+            <button type="button" class="dice-btn" data-randomize="trait2" aria-label="Randomize Trait 2" data-tooltip="Randomize">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><circle cx="5.5" cy="5.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="10.5" cy="10.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-trait3">Trait 3</label>
+          <div class="field-with-dice">
+            <input id="f-trait3" placeholder="e.g. Creative" />
+            <button type="button" class="dice-btn" data-randomize="trait3" aria-label="Randomize Trait 3" data-tooltip="Randomize">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><circle cx="5.5" cy="5.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="10.5" cy="10.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-aspiration">Aspiration</label>
+          <div class="field-with-dice">
+            <input id="f-aspiration" placeholder="e.g. Renaissance Sim" />
+            <button type="button" class="dice-btn" data-randomize="aspiration" aria-label="Randomize Aspiration" data-tooltip="Randomize">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="2.5" y="2.5" width="11" height="11" rx="2"/><circle cx="5.5" cy="5.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="10.5" cy="10.5" r="0.9" fill="currentColor" stroke="none"/><circle cx="8" cy="8" r="0.9" fill="currentColor" stroke="none"/></svg>
+            </button>
+          </div>
         </div>
 
         <div class="section-divider">Family</div>
@@ -1376,6 +1431,10 @@ function openEditForm(id, returnView){
   document.getElementById("f-dynasty-role").value = normalizeDynastyRole(s.dynastyRole);
   document.getElementById("f-realm").value = s.realm || "";
   document.getElementById("f-heir-throne").checked = !!s.heirToThrone;
+  document.getElementById("f-trait1").value = s.trait1 || "";
+  document.getElementById("f-trait2").value = s.trait2 || "";
+  document.getElementById("f-trait3").value = s.trait3 || "";
+  document.getElementById("f-aspiration").value = s.aspiration || "";
   document.getElementById("f-father").value = s.father || "";
   document.getElementById("f-mother").value = s.mother || "";
   document.getElementById("f-siblings").value = s.siblings || "";
@@ -1471,6 +1530,41 @@ function isMatchableAge(s){
   const age = normalizeAge(s.age);
   return age === "Teenager" || age === "Adult" || age === "Elder";
 }
+
+// Personality: filled in once real trait/aspiration lists are provided.
+// Trait randomization excludes whatever's already in the other two trait
+// fields so a reroll never produces a duplicate. Aspiration excludes its
+// own current value so a reroll always actually changes something (unless
+// the pool only has one entry).
+const TRAIT_POOL = [];
+const ASPIRATION_POOL = [];
+
+function randomFrom(pool, exclude){
+  const options = pool.filter(v => !exclude.includes(v));
+  const source = options.length ? options : pool;
+  if (!source.length) return null;
+  return source[Math.floor(Math.random() * source.length)];
+}
+
+document.querySelectorAll(".dice-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.randomize;
+    const field = document.getElementById(`f-${target}`);
+    if (target === "aspiration"){
+      const current = field.value.trim();
+      const pick = randomFrom(ASPIRATION_POOL, current ? [current] : []);
+      if (!pick){ showToast("No aspirations to randomize from yet."); return; }
+      field.value = pick;
+    } else {
+      const traitIds = ["f-trait1", "f-trait2", "f-trait3"];
+      const others = traitIds.filter(id => id !== `f-${target}`)
+        .map(id => document.getElementById(id).value.trim()).filter(Boolean);
+      const pick = randomFrom(TRAIT_POOL, others);
+      if (!pick){ showToast("No traits to randomize from yet."); return; }
+      field.value = pick;
+    }
+  });
+});
 function normalizeDynastyRole(text){
   const match = DYNASTY_ROLE_OPTIONS.find(o => o.toLowerCase() === (text || "").trim().toLowerCase());
   return match || "Member";
@@ -1673,6 +1767,7 @@ function renderRoster(){
     const isDeceased = isDeceasedSim(s);
     const haystack = [
       fullName(s), s.title, s.age, s.dynasty, s.dynastyRole, s.realm,
+      s.trait1, s.trait2, s.trait3, s.aspiration,
       s.father, s.mother, s.siblings, s.maritalStatus, s.spouse, s.children, s.notes,
       s.gender, s.gender === "male" ? "male" : "female",
       isDeceased ? "deceased" : "alive living",
@@ -1970,6 +2065,16 @@ function renderDetail(){
     </div>
 
     <div class="detail-section">
+      <h3>Personality</h3>
+      <div class="detail-grid">
+        ${field('Trait 1', s.trait1)}
+        ${field('Trait 2', s.trait2)}
+        ${field('Trait 3', s.trait3)}
+        ${field('Aspiration', s.aspiration)}
+      </div>
+    </div>
+
+    <div class="detail-section">
       <h3>Family</h3>
       <div class="detail-grid">
         ${field('Father', s.father)}
@@ -2209,6 +2314,10 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
     dynastyRole: document.getElementById("f-dynasty-role").value.trim(),
     realm: document.getElementById("f-realm").value.trim(),
     heirToThrone: document.getElementById("f-heir-throne").checked,
+    trait1: document.getElementById("f-trait1").value.trim(),
+    trait2: document.getElementById("f-trait2").value.trim(),
+    trait3: document.getElementById("f-trait3").value.trim(),
+    aspiration: document.getElementById("f-aspiration").value.trim(),
     father: document.getElementById("f-father").value.trim(),
     mother: document.getElementById("f-mother").value.trim(),
     siblings: document.getElementById("f-siblings").value.trim(),
