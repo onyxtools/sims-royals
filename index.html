@@ -431,6 +431,7 @@
     margin-bottom: 8px;
     max-width: 640px;
   }
+  .detail-header-actions{ display:flex; gap: 10px; flex-shrink:0; }
   .detail-title-block{ min-width:0; }
   .detail-title{ font-size: 1.5rem; font-weight: 700; }
   .detail-subtitle{ color: var(--text-muted); margin-top: 4px; font-size: 0.9rem; }
@@ -785,12 +786,12 @@
       <div class="wordmark">👑 Kingdoms</div>
     </div>
     <nav>
+      <button class="nav-btn" data-view="add">Add Noble</button>
       <button class="nav-btn active" data-view="roster">Nobles <span class="nav-count" id="nav-royals-count"></span></button>
       <button class="nav-btn" data-view="dynasties">Dynasties <span class="nav-count" id="nav-dynasties-count"></span></button>
       <button class="nav-btn" data-view="realms">Royal Families <span class="nav-count" id="nav-realms-count"></span></button>
-      <button class="nav-btn" data-view="add">Add Noble</button>
-      <button class="nav-btn" data-view="match">Noble Matchmaking</button>
-      <button class="nav-btn" data-view="rules">Rules</button>
+      <button class="nav-btn" data-view="match">The Marriage Mart</button>
+      <button class="nav-btn" data-view="rules">Gameplay Rules</button>
     </nav>
   </aside>
 
@@ -928,7 +929,7 @@
     <section class="view" id="view-rules">
       <div class="rules-header">
         <div class="view-head" style="margin-bottom:0;">
-          <h2>Rules</h2>
+          <h2>Gameplay Rules</h2>
         </div>
         <button class="labeled-btn" id="rules-edit-btn">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M11 2.5l2.5 2.5L5 13.5H2.5V11z"/></svg>
@@ -1098,7 +1099,7 @@
     <!-- MATCH -->
     <section class="view" id="view-match">
       <div class="view-head">
-        <h2>Noble Matchmaking</h2>
+        <h2>The Marriage Mart</h2>
         <p>Pick a debutante to see who she may court.</p>
       </div>
       <div class="match-layout">
@@ -2249,10 +2250,16 @@ function renderDetail(){
           ${isDeceased ? `<span class="badge deceased">Deceased</span>` : ''}
         </div>
       </div>
-      <button class="labeled-btn" id="detail-tree-btn">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="3" r="1.6"/><circle cx="3.5" cy="13" r="1.6"/><circle cx="12.5" cy="13" r="1.6"/><path d="M8 4.6V8M8 8L3.5 11.4M8 8L12.5 11.4"/></svg>
-        View Family Tree
-      </button>
+      <div class="detail-header-actions">
+        <button class="labeled-btn" id="detail-edit-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M11 2.5l2.5 2.5L5 13.5H2.5V11z"/></svg>
+          Edit
+        </button>
+        <button class="labeled-btn" id="detail-tree-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="3" r="1.6"/><circle cx="3.5" cy="13" r="1.6"/><circle cx="12.5" cy="13" r="1.6"/><path d="M8 4.6V8M8 8L3.5 11.4M8 8L12.5 11.4"/></svg>
+          View Family Tree
+        </button>
+      </div>
     </div>
 
     <div class="detail-section">
@@ -2291,6 +2298,7 @@ function renderDetail(){
     </div>
   `;
 
+  container.querySelector("#detail-edit-btn").addEventListener("click", () => openEditForm(s.id, "detail"));
   container.querySelector("#detail-tree-btn").addEventListener("click", () => openFamilyTree(s.id));
 }
 
