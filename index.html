@@ -787,6 +787,7 @@
     <nav>
       <button class="nav-btn active" data-view="roster">Nobles <span class="nav-count" id="nav-royals-count"></span></button>
       <button class="nav-btn" data-view="dynasties">Dynasties <span class="nav-count" id="nav-dynasties-count"></span></button>
+      <button class="nav-btn" data-view="realms">Royal Families <span class="nav-count" id="nav-realms-count"></span></button>
       <button class="nav-btn" data-view="add">Add Noble</button>
       <button class="nav-btn" data-view="match">Noble Matchmaking</button>
       <button class="nav-btn" data-view="rules">Rules</button>
@@ -867,6 +868,43 @@
         </div>
       </div>
       <div class="royals-grid" id="dynasty-royals-grid"></div>
+    </section>
+
+    <!-- ROYAL FAMILIES -->
+    <section class="view" id="view-realms">
+      <div class="view-head">
+        <h2>Royal Families</h2>
+      </div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <button class="sort-btn active" id="realm-sort-name" data-dir="asc">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+          <span id="realm-sort-name-label">Name A-Z</span>
+        </button>
+        <button class="sort-btn" id="realm-sort-members" data-dir="desc">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+          <span id="realm-sort-members-label">Most members</span>
+        </button>
+      </div>
+      <div class="royals-grid list-view" id="realms-grid"></div>
+    </section>
+
+    <!-- REALM DETAIL -->
+    <section class="view" id="view-realm-detail">
+      <button class="back-btn" id="realm-detail-back">&larr; Back to Royal Families</button>
+      <div class="view-head">
+        <h2 id="realm-detail-heading">Realm</h2>
+      </div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <div class="view-toggle noble-view-toggle">
+          <button class="view-toggle-btn noble-view-btn active" data-mode="cards" aria-label="Card view" data-tooltip="Cards">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          </button>
+          <button class="view-toggle-btn noble-view-btn" data-mode="list" aria-label="List view" data-tooltip="List">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h12M2 12h12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="royals-grid" id="realm-royals-grid"></div>
     </section>
 
     <!-- DETAIL -->
@@ -1144,6 +1182,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     showView(btn.dataset.view);
     if (btn.dataset.view === "match") renderMatchmaker();
     if (btn.dataset.view === "dynasties") renderDynasties();
+    if (btn.dataset.view === "realms") renderRealms();
   });
 });
 
@@ -1170,6 +1209,18 @@ function closeDynastyDetail(){
   showView("dynasties");
 }
 document.getElementById("dynasty-detail-back").addEventListener("click", closeDynastyDetail);
+
+let selectedRealmName = null;
+function openRealmDetail(name){
+  selectedRealmName = name;
+  showView("realm-detail");
+  renderRealmDetail();
+}
+function closeRealmDetail(){
+  selectedRealmName = null;
+  showView("realms");
+}
+document.getElementById("realm-detail-back").addEventListener("click", closeRealmDetail);
 
 /* ---------------- Family Tree ---------------- */
 const TREE_MAX_DEPTH = 3;
@@ -1457,11 +1508,14 @@ onSnapshot(simsCol, snap => {
   SIMS.sort((a, b) => fullName(a).localeCompare(fullName(b)));
   document.getElementById("nav-royals-count").textContent = `(${SIMS.filter(s => !isDeceasedSim(s)).length})`;
   document.getElementById("nav-dynasties-count").textContent = `(${getDynastyGroups().length})`;
+  document.getElementById("nav-realms-count").textContent = `(${getRealmGroups().length})`;
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
   if (document.getElementById("view-detail").classList.contains("active")) renderDetail();
   if (document.getElementById("view-dynasties").classList.contains("active")) renderDynasties();
   if (document.getElementById("view-dynasty-detail").classList.contains("active")) renderDynastyDetail();
+  if (document.getElementById("view-realms").classList.contains("active")) renderRealms();
+  if (document.getElementById("view-realm-detail").classList.contains("active")) renderRealmDetail();
   if (document.getElementById("view-family-tree").classList.contains("active")) renderFamilyTree();
 }, err => {
   console.error(err);
@@ -1754,6 +1808,7 @@ document.querySelectorAll(".noble-view-btn").forEach(btn => {
     updateViewToggleUI();
     renderRoster();
     renderDynastyDetail();
+    renderRealmDetail();
   });
 });
 
@@ -1863,6 +1918,21 @@ function getDynastyGroups(){
   return Object.values(groups);
 }
 
+function getRealmGroups(){
+  const groups = {};
+  SIMS.forEach(s => {
+    const name = (s.realm || "").trim();
+    if (!name) return;
+    const key = normalizeName(name);
+    if (!groups[key]) groups[key] = { displayName: name, members: [] };
+    groups[key].members.push(s);
+  });
+  return Object.values(groups);
+}
+function titleMatches(person, titleWord){
+  return (person.title || "").trim().toLowerCase() === titleWord.toLowerCase();
+}
+
 let dynastySortMode = "name";
 let dynastyNameDir = "asc";
 let dynastyMembersDir = "desc";
@@ -1970,6 +2040,114 @@ function renderDynastyDetail(){
   const builder = nobleViewMode === "list" ? buildRoyalRowHTML : buildRoyalCardHTML;
   container.innerHTML = members.map(builder).join("");
   wireRoyalCards(container, "dynasty-detail");
+}
+
+/* ---------------- Royal Families (by Realm) ---------------- */
+let realmSortMode = "name";
+let realmNameDir = "asc";
+let realmMembersDir = "desc";
+
+function updateRealmSortUI(){
+  const nameBtn = document.getElementById("realm-sort-name");
+  const membersBtn = document.getElementById("realm-sort-members");
+  nameBtn.dataset.dir = realmNameDir;
+  membersBtn.dataset.dir = realmMembersDir;
+  nameBtn.classList.toggle("active", realmSortMode === "name");
+  membersBtn.classList.toggle("active", realmSortMode === "members");
+  document.getElementById("realm-sort-name-label").textContent = realmNameDir === "asc" ? "Name A-Z" : "Name Z-A";
+  document.getElementById("realm-sort-members-label").textContent = realmMembersDir === "desc" ? "Most members" : "Fewest members";
+}
+document.getElementById("realm-sort-name").addEventListener("click", () => {
+  if (realmSortMode === "name") realmNameDir = realmNameDir === "asc" ? "desc" : "asc";
+  realmSortMode = "name";
+  updateRealmSortUI();
+  renderRealms();
+});
+document.getElementById("realm-sort-members").addEventListener("click", () => {
+  if (realmSortMode === "members") realmMembersDir = realmMembersDir === "desc" ? "asc" : "desc";
+  realmSortMode = "members";
+  updateRealmSortUI();
+  renderRealms();
+});
+updateRealmSortUI();
+
+function renderRealms(){
+  const container = document.getElementById("realms-grid");
+
+  const realmList = getRealmGroups();
+  realmList.sort((a, b) => {
+    if (realmSortMode === "members"){
+      const diff = a.members.length - b.members.length;
+      if (diff !== 0) return realmMembersDir === "desc" ? -diff : diff;
+      return a.displayName.localeCompare(b.displayName);
+    }
+    const cmp = a.displayName.localeCompare(b.displayName);
+    return realmNameDir === "asc" ? cmp : -cmp;
+  });
+
+  document.getElementById("nav-realms-count").textContent = `(${realmList.length})`;
+
+  if (!realmList.length){
+    container.innerHTML = `<div class="empty-state">No realms yet. Give a noble a Kingdom name to start one.</div>`;
+    return;
+  }
+
+  container.innerHTML = realmList.map(g => {
+    const king = g.members.find(m => titleMatches(m, "King"));
+    const queen = g.members.find(m => titleMatches(m, "Queen"));
+    const princes = g.members.filter(m => titleMatches(m, "Prince"));
+    const princesses = g.members.filter(m => titleMatches(m, "Princess"));
+    const memberLabel = `${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}`;
+    const none = '<em class="not-recorded">None recorded</em>';
+    const roleValue = person => person ? escapeHtml(displayName(person)) : none;
+    const listValue = list => list.length ? list.map(p => escapeHtml(displayName(p))).join(", ") : none;
+
+    return `
+    <div class="royal-card dynasty-row-item" tabindex="0" role="button" data-realm="${escapeHtml(g.displayName)}">
+      <div class="dynasty-row-top">
+        <div class="row-main">
+          <span class="row-name">${escapeHtml(g.displayName)}</span>
+        </div>
+        <div class="row-count">${memberLabel}</div>
+      </div>
+      <div class="dynasty-row-roles">
+        <span>King: <strong>${roleValue(king)}</strong></span>
+        <span>Queen: <strong>${roleValue(queen)}</strong></span>
+        <span>Prince: <strong>${listValue(princes)}</strong></span>
+        <span>Princess: <strong>${listValue(princesses)}</strong></span>
+      </div>
+    </div>
+  `;
+  }).join("");
+
+  container.querySelectorAll(".royal-card").forEach(card => {
+    card.addEventListener("click", () => openRealmDetail(card.dataset.realm));
+    card.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " "){ e.preventDefault(); openRealmDetail(card.dataset.realm); }
+    });
+  });
+}
+
+function renderRealmDetail(){
+  const container = document.getElementById("realm-royals-grid");
+  const heading = document.getElementById("realm-detail-heading");
+  if (!selectedRealmName){
+    container.innerHTML = "";
+    return;
+  }
+  heading.textContent = selectedRealmName;
+
+  const members = SIMS.filter(s => normalizeName(s.realm) === normalizeName(selectedRealmName));
+  if (!members.length){
+    container.innerHTML = `<div class="empty-state">No nobles in this realm anymore.</div>`;
+    return;
+  }
+  members.sort((a, b) => fullName(a).localeCompare(fullName(b)));
+
+  container.classList.toggle("list-view", nobleViewMode === "list");
+  const builder = nobleViewMode === "list" ? buildRoyalRowHTML : buildRoyalCardHTML;
+  container.innerHTML = members.map(builder).join("");
+  wireRoyalCards(container, "realm-detail");
 }
 
 document.addEventListener("click", () => {
@@ -2382,6 +2560,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       showView(returnTo);
       if (returnTo === "detail") renderDetail();
       if (returnTo === "dynasty-detail") renderDynastyDetail();
+      if (returnTo === "realm-detail") renderRealmDetail();
     } else {
       payload.createdAt = serverTimestamp();
       const docRef = await addDoc(simsCol, payload);
