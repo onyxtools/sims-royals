@@ -885,7 +885,7 @@
           <span id="realm-sort-members-label">Most members</span>
         </button>
       </div>
-      <div class="royals-grid list-view" id="realms-grid"></div>
+      <div class="royals-grid" id="realms-grid"></div>
     </section>
 
     <!-- REALM DETAIL -->
@@ -1929,9 +1929,6 @@ function getRealmGroups(){
   });
   return Object.values(groups);
 }
-function titleMatches(person, titleWord){
-  return (person.title || "").trim().toLowerCase() === titleWord.toLowerCase();
-}
 
 let dynastySortMode = "name";
 let dynastyNameDir = "asc";
@@ -2092,33 +2089,11 @@ function renderRealms(){
     return;
   }
 
-  container.innerHTML = realmList.map(g => {
-    const king = g.members.find(m => titleMatches(m, "King"));
-    const queen = g.members.find(m => titleMatches(m, "Queen"));
-    const princes = g.members.filter(m => titleMatches(m, "Prince"));
-    const princesses = g.members.filter(m => titleMatches(m, "Princess"));
-    const memberLabel = `${g.members.length} ${g.members.length === 1 ? 'member' : 'members'}`;
-    const none = '<em class="not-recorded">None recorded</em>';
-    const roleValue = person => person ? escapeHtml(displayName(person)) : none;
-    const listValue = list => list.length ? list.map(p => escapeHtml(displayName(p))).join(", ") : none;
-
-    return `
-    <div class="royal-card dynasty-row-item" tabindex="0" role="button" data-realm="${escapeHtml(g.displayName)}">
-      <div class="dynasty-row-top">
-        <div class="row-main">
-          <span class="row-name">${escapeHtml(g.displayName)}</span>
-        </div>
-        <div class="row-count">${memberLabel}</div>
-      </div>
-      <div class="dynasty-row-roles">
-        <span>King: <strong>${roleValue(king)}</strong></span>
-        <span>Queen: <strong>${roleValue(queen)}</strong></span>
-        <span>Prince: <strong>${listValue(princes)}</strong></span>
-        <span>Princess: <strong>${listValue(princesses)}</strong></span>
-      </div>
+  container.innerHTML = realmList.map(g => `
+    <div class="royal-card" tabindex="0" role="button" data-realm="${escapeHtml(g.displayName)}">
+      <div class="name">${escapeHtml(g.displayName)}</div>
     </div>
-  `;
-  }).join("");
+  `).join("");
 
   container.querySelectorAll(".royal-card").forEach(card => {
     card.addEventListener("click", () => openRealmDetail(card.dataset.realm));
@@ -2137,9 +2112,13 @@ function renderRealmDetail(){
   }
   heading.textContent = selectedRealmName;
 
-  const members = SIMS.filter(s => normalizeName(s.realm) === normalizeName(selectedRealmName));
+  const ROYAL_TITLES = ["king", "queen", "prince", "princess"];
+  const members = SIMS.filter(s =>
+    normalizeName(s.realm) === normalizeName(selectedRealmName) &&
+    ROYAL_TITLES.includes((s.title || "").trim().toLowerCase())
+  );
   if (!members.length){
-    container.innerHTML = `<div class="empty-state">No nobles in this realm anymore.</div>`;
+    container.innerHTML = `<div class="empty-state">No King, Queen, Prince, or Princess recorded for this realm yet.</div>`;
     return;
   }
   members.sort((a, b) => fullName(a).localeCompare(fullName(b)));
