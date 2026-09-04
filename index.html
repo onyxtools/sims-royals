@@ -857,7 +857,7 @@
       </div>
       <div class="toolbar">
         <div class="royals-search-wrap">
-          <input type="search" id="realm-search" placeholder="Search realms…" />
+          <input type="search" id="realm-search" placeholder="Search kingdoms…" />
           <button type="button" class="search-clear-btn" id="realm-search-clear" hidden aria-label="Clear search">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
           </button>
@@ -878,7 +878,7 @@
     <section class="view" id="view-realm-detail">
       <button class="back-btn" id="realm-detail-back">&larr; Back to Royal Families</button>
       <div class="view-head">
-        <h2 id="realm-detail-heading">Realm</h2>
+        <h2 id="realm-detail-heading">Kingdom</h2>
       </div>
       <div class="toolbar" style="justify-content:flex-end;">
         <div class="view-toggle noble-view-toggle">
@@ -2093,7 +2093,7 @@ function renderRealms(){
   });
 
   if (!visibleList.length){
-    container.innerHTML = `<div class="empty-state">${searchTerm ? 'No realms match your search.' : 'No realms yet. Give a noble a Kingdom name to start one.'}</div>`;
+    container.innerHTML = `<div class="empty-state">${searchTerm ? 'No kingdoms match your search.' : 'No kingdoms yet. Give a noble a Kingdom name to start one.'}</div>`;
     return;
   }
 
@@ -2129,7 +2129,7 @@ function renderRealmDetail(){
     isRoyalFamilyTitle(s)
   );
   if (!members.length){
-    container.innerHTML = `<div class="empty-state">No King, Queen, Prince, or Princess recorded for this realm yet.</div>`;
+    container.innerHTML = `<div class="empty-state">No King, Queen, Prince, or Princess recorded for this kingdom yet.</div>`;
     return;
   }
   members.sort((a, b) => fullName(a).localeCompare(fullName(b)));
