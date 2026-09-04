@@ -1455,7 +1455,7 @@ document.getElementById("cancel-edit-btn").addEventListener("click", () => {
 onSnapshot(simsCol, snap => {
   SIMS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
   SIMS.sort((a, b) => fullName(a).localeCompare(fullName(b)));
-  document.getElementById("nav-royals-count").textContent = `(${SIMS.length})`;
+  document.getElementById("nav-royals-count").textContent = `(${SIMS.filter(s => !isDeceasedSim(s)).length})`;
   document.getElementById("nav-dynasties-count").textContent = `(${getDynastyGroups().length})`;
   renderRoster();
   if (document.getElementById("view-match").classList.contains("active")) renderMatchmaker();
