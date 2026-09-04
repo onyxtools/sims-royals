@@ -449,6 +449,21 @@
   .detail-field label{ display:block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 3px; }
   .detail-field .value{ font-size: 0.78rem; color: var(--text); }
   .not-recorded{ font-size: 0.7rem; font-style: italic; color: #5f5741; }
+  .rules-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    max-width: 800px;
+    margin-bottom: 24px;
+  }
+  .rules-body{ max-width: 800px; }
+  .rules-body .detail-notes-view{ min-height: 120px; }
+  .rules-body .detail-notes-view p{ margin: 0 0 12px; }
+  .rules-body .detail-notes-view p:last-child{ margin-bottom: 0; }
+  .rules-body .detail-notes-view ul{ margin: 0 0 12px; padding-left: 20px; }
+  .rules-body .detail-notes-view li{ margin-bottom: 4px; }
+  #rules-textarea{ width: 100%; min-height: 360px; resize: vertical; }
+  .rules-edit-actions{ display:flex; gap: 10px; margin-top: 14px; }
   .family-tree{
     display:flex;
     flex-direction:column;
@@ -629,6 +644,10 @@
     border-radius: 5px;
     font-size: 0.9rem;
     cursor: pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 8px;
     transition: background 0.12s, border-color 0.12s;
   }
   .candidate-item:hover{ background: var(--bg-hover); }
@@ -740,6 +759,7 @@
       <button class="nav-btn" data-view="dynasties">Dynasties <span class="nav-count" id="nav-dynasties-count"></span></button>
       <button class="nav-btn" data-view="add">Add Noble</button>
       <button class="nav-btn" data-view="match">Noble Matchmaking</button>
+      <button class="nav-btn" data-view="rules">Rules</button>
     </nav>
   </aside>
 
@@ -787,6 +807,16 @@
       <div class="view-head">
         <h2>Dynasties</h2>
       </div>
+      <div class="toolbar" style="justify-content:flex-end;">
+        <button class="sort-btn active" id="dynasty-sort-name" data-dir="asc">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+          <span id="dynasty-sort-name-label">Name A-Z</span>
+        </button>
+        <button class="sort-btn" id="dynasty-sort-members" data-dir="desc">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+          <span id="dynasty-sort-members-label">Most members</span>
+        </button>
+      </div>
       <div class="royals-grid list-view" id="dynasties-grid"></div>
     </section>
 
@@ -824,6 +854,29 @@
         <p>Click anyone in the tree to re-center it on them. Shows up to three generations up and down.</p>
       </div>
       <div class="family-tree" id="family-tree-content"></div>
+    </section>
+
+    <!-- RULES -->
+    <section class="view" id="view-rules">
+      <div class="rules-header">
+        <div class="view-head" style="margin-bottom:0;">
+          <h2>Rules</h2>
+        </div>
+        <button class="labeled-btn" id="rules-edit-btn">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M11 2.5l2.5 2.5L5 13.5H2.5V11z"/></svg>
+          Edit
+        </button>
+      </div>
+      <div class="rules-body">
+        <div id="rules-view-content" class="detail-notes-view"></div>
+        <div id="rules-edit-wrap" hidden>
+          <textarea id="rules-textarea" class="detail-notes-input" placeholder="Write your gameplay rules here. Supports **bold**, *italic*, and - bullet lists."></textarea>
+          <div class="rules-edit-actions">
+            <button class="primary-btn" id="rules-save-btn">Save</button>
+            <button class="labeled-btn" id="rules-cancel-btn">Cancel</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ADD -->
@@ -994,7 +1047,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc,
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, setDoc,
   onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -1036,6 +1089,7 @@ function showView(viewName){
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     if (btn.dataset.view === "add") resetFormToAddMode();
+    if (btn.dataset.view !== "rules") exitRulesEditMode();
     showView(btn.dataset.view);
     if (btn.dataset.view === "match") renderMatchmaker();
     if (btn.dataset.view === "dynasties") renderDynasties();
@@ -1212,6 +1266,80 @@ function renderFamilyTree(){
     });
   });
 }
+
+/* ---------------- Rules ---------------- */
+// Minimal markdown: **bold**, *italic* / _italic_, "- " bullet lists, and
+// blank-line-separated paragraphs. Escapes HTML first so nothing typed here
+// can inject markup, then layers the markdown syntax on top of that.
+function inlineMarkdown(text){
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/_(.+?)_/g, "<em>$1</em>");
+}
+function renderMarkdownBasic(text){
+  if (!text || !text.trim()) return "";
+  const lines = escapeHtml(text).split("\n");
+  let html = "";
+  let inList = false;
+  const closeList = () => { if (inList){ html += "</ul>"; inList = false; } };
+  lines.forEach(rawLine => {
+    const line = rawLine.trim();
+    if (!line){ closeList(); return; }
+    const listMatch = line.match(/^[-*]\s+(.*)/);
+    if (listMatch){
+      if (!inList){ html += "<ul>"; inList = true; }
+      html += `<li>${inlineMarkdown(listMatch[1])}</li>`;
+    } else {
+      closeList();
+      html += `<p>${inlineMarkdown(line)}</p>`;
+    }
+  });
+  closeList();
+  return html;
+}
+
+const rulesDocRef = doc(db, "meta", "rules");
+let rulesContent = "";
+
+function renderRulesView(){
+  const el = document.getElementById("rules-view-content");
+  el.innerHTML = rulesContent.trim()
+    ? renderMarkdownBasic(rulesContent)
+    : `<span class="not-recorded">No rules written yet. Click Edit to add some.</span>`;
+}
+
+onSnapshot(rulesDocRef, snap => {
+  rulesContent = snap.exists() ? (snap.data().content || "") : "";
+  renderRulesView();
+}, err => {
+  console.error(err);
+});
+
+function exitRulesEditMode(){
+  document.getElementById("rules-edit-wrap").hidden = true;
+  document.getElementById("rules-view-content").hidden = false;
+  document.getElementById("rules-edit-btn").hidden = false;
+}
+
+document.getElementById("rules-edit-btn").addEventListener("click", () => {
+  document.getElementById("rules-textarea").value = rulesContent;
+  document.getElementById("rules-view-content").hidden = true;
+  document.getElementById("rules-edit-btn").hidden = true;
+  document.getElementById("rules-edit-wrap").hidden = false;
+});
+document.getElementById("rules-cancel-btn").addEventListener("click", exitRulesEditMode);
+document.getElementById("rules-save-btn").addEventListener("click", async () => {
+  const val = document.getElementById("rules-textarea").value;
+  try {
+    await setDoc(rulesDocRef, { content: val, updatedAt: serverTimestamp() });
+    exitRulesEditMode();
+    showToast("Rules saved.");
+  } catch (err) {
+    console.error(err);
+    showToast("Could not save the rules. Check your connection.");
+  }
+});
 
 let editingId = null;
 let editReturnView = "roster";
@@ -1423,6 +1551,7 @@ function buildRoyalCardHTML(s){
         </div>
       </div>
       ${roleLine ? `<div class="subline">${escapeHtml(roleLine)}</div>` : ''}
+      ${s.realm ? `<div class="subline">${escapeHtml(s.realm)}</div>` : ''}
       <div class="card-badges">
         <span class="badge ${s.gender}">${s.gender === 'male' ? 'Male' : 'Female'}</span>
         <span class="badge age">${normalizeAge(s.age)}</span>
@@ -1442,7 +1571,9 @@ function buildRoyalRowHTML(s){
   const isDeceased = isDeceasedSim(s);
   const badge = maritalBadge(s);
   const role = normalizeDynastyRole(s.dynastyRole);
-  const roleLine = s.dynasty ? [s.dynasty, dynastyRoleDisplayLabel(role)].filter(Boolean).join(", ") : "";
+  const roleLine = s.dynasty
+    ? [s.dynasty, dynastyRoleDisplayLabel(role), s.realm].filter(Boolean).join(", ")
+    : (s.realm || "");
 
   return `
     <div class="royal-card royal-row-item${isDeceased ? ' deceased' : ''}" tabindex="0" role="button" data-open="${s.id}">
@@ -1590,13 +1721,50 @@ function getDynastyGroups(){
     if (!groups[key]) groups[key] = { displayName: name, members: [] };
     groups[key].members.push(s);
   });
-  return Object.values(groups).sort((a, b) => a.displayName.localeCompare(b.displayName));
+  return Object.values(groups);
 }
+
+let dynastySortMode = "name";
+let dynastyNameDir = "asc";
+let dynastyMembersDir = "desc";
+
+function updateDynastySortUI(){
+  const nameBtn = document.getElementById("dynasty-sort-name");
+  const membersBtn = document.getElementById("dynasty-sort-members");
+  nameBtn.dataset.dir = dynastyNameDir;
+  membersBtn.dataset.dir = dynastyMembersDir;
+  nameBtn.classList.toggle("active", dynastySortMode === "name");
+  membersBtn.classList.toggle("active", dynastySortMode === "members");
+  document.getElementById("dynasty-sort-name-label").textContent = dynastyNameDir === "asc" ? "Name A-Z" : "Name Z-A";
+  document.getElementById("dynasty-sort-members-label").textContent = dynastyMembersDir === "desc" ? "Most members" : "Fewest members";
+}
+document.getElementById("dynasty-sort-name").addEventListener("click", () => {
+  if (dynastySortMode === "name") dynastyNameDir = dynastyNameDir === "asc" ? "desc" : "asc";
+  dynastySortMode = "name";
+  updateDynastySortUI();
+  renderDynasties();
+});
+document.getElementById("dynasty-sort-members").addEventListener("click", () => {
+  if (dynastySortMode === "members") dynastyMembersDir = dynastyMembersDir === "desc" ? "asc" : "desc";
+  dynastySortMode = "members";
+  updateDynastySortUI();
+  renderDynasties();
+});
+updateDynastySortUI();
 
 function renderDynasties(){
   const container = document.getElementById("dynasties-grid");
 
   const dynastyList = getDynastyGroups();
+  dynastyList.sort((a, b) => {
+    if (dynastySortMode === "members"){
+      const diff = a.members.length - b.members.length;
+      if (diff !== 0) return dynastyMembersDir === "desc" ? -diff : diff;
+      return a.displayName.localeCompare(b.displayName);
+    }
+    const cmp = a.displayName.localeCompare(b.displayName);
+    return dynastyNameDir === "asc" ? cmp : -cmp;
+  });
 
   document.getElementById("nav-dynasties-count").textContent = `(${dynastyList.length})`;
 
@@ -2365,6 +2533,7 @@ function renderMatchmaker(){
     list.innerHTML = visibleSingles.map(s => `
       <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}" data-pick="${s.id}">
         <span>${escapeHtml(displayName(s))}</span>
+        ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
       </div>
     `).join("") + `<div id="candidate-sentinel" style="height:1px;"></div>`;
 
