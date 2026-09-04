@@ -1574,9 +1574,22 @@ function randomFrom(pool, exclude){
   if (!source.length) return null;
   return source[Math.floor(Math.random() * source.length)];
 }
+// Array.sort(() => Math.random() - 0.5) looks like a shuffle but is a known
+// bad pattern: sort algorithms aren't built for a random comparator and it
+// introduces real bias toward certain elements, exactly the "same handful
+// of traits keep coming up" symptom. Fisher-Yates is the correct, actually
+// uniform way to shuffle.
+function shuffleArray(arr){
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 function randomTraitsPick(pool, count){
   if (!pool.length) return null;
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleArray(pool);
   return shuffled.slice(0, Math.min(count, shuffled.length)).join(", ");
 }
 
