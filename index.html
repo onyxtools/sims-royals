@@ -1530,8 +1530,43 @@ function isMatchableAge(s){
 // pool doesn't have 3 yet) and replaces the whole field. Aspiration excludes
 // its own current value so a reroll always actually changes something
 // (unless the pool only has one entry).
-const TRAIT_POOL = [];
-const ASPIRATION_POOL = [];
+const TRAIT_POOL = [
+  "Ambitious", "Cheerful", "Childish", "Clumsy", "Creative", "Erratic", "Genius", "Gloomy",
+  "Goofball", "High Maintenance", "Hot-Headed", "Love Bug", "Paranoid", "Practice Makes Perfect",
+  "Romantic", "Romantically Reserved", "Self-Assured", "Squeamish", "Unflirty",
+  "Art Lover", "Bookworm", "Dance Machine", "Foodie", "Geek", "Loves Outdoors",
+  "Maker", "Music Lover", "Recycle Disciple", "Active", "Adventurous", "Chased by Death",
+  "Child of the Island", "Child of the Ocean", "Child of the Village", "Disruptive", "Freegan",
+  "Glutton", "Green Fiend", "Kleptomaniac", "Lactose Intolerant", "Lazy", "Macabre",
+  "Materialistic", "Mystical", "Neat", "Overachiever", "Perfectionist",
+  "Rancher", "Skeptical", "Slob", "Vegetarian",
+  "Animal Enthusiast", "Bro", "Cat Lover", "Cringe", "Dog Lover", "Evil", "Family-Oriented",
+  "Generous", "Good", "Hates Children", "Horse Lover", "Idealist", "Insider", "Jealous",
+  "Loner", "Loyal", "Mean", "Non-Committal", "Nosy", "Outgoing", "Party Animal",
+  "Plant Lover", "Proper", "Self-Absorbed", "Shady", "Snob", "Socially Awkward"
+];
+const ASPIRATION_POOL = [
+  "Friend of the Animals", "Championship Rider", "Extreme Sports Enthusiast", "Bodybuilder",
+  "Musical Genius", "Lord/Lady of the Knits", "Master Maker", "Master Actor/Actress",
+  "Painter Extraordinaire", "Best-Selling Author", "Seeker of Secrets", "Villainous Valentine",
+  "Public Enemy", "Chief of Mischief", "Social Puppeteer", "Fairy Stories",
+  "Big Happy Family", "Vampire Family", "Super Parent", "Successful Lineage",
+  "Master Mixologist", "Expert Nectar Maker", "Appliance Wiz", "Master Chef",
+  "Five Star Property Owner", "Market Magnate", "Fabulously Wealthy", "Mansion Baron",
+  "Ghost Historian", "Academic", "Elixir Enthusiast",
+  "Nerd Brain", "Master Mentor", "Spellcraft and Sorcery", "Master Vampire",
+  "Renaissance Sim", "Archaeology Scholar", "Computer Whiz",
+  "Crystal Crafter", "Eco Innovator", "Freelance Botanist",
+  "Angling Ace", "The Curator", "Jungle Explorer", "Country Caretaker", "Outdoor Enthusiast",
+  "Nature Nomad", "Purveyor of Potions", "Fount of Tomarani Knowledge",
+  "Perfectly Pristine", "City Native", "Beach Life", "Strangerville Mystery", "Mount Komorebi Sightseer",
+  "Fabulously Filthy",
+  "Romantic Explorer", "Soul Mate", "Serial Romantic", "Paragon Partner",
+  "Friend of the World", "Party Animal", "Good Vampire",
+  "World-Famous Celebrity", "Leader of the Pack", "Joke Star", "Esteemed Entrepreneur",
+  "Discerning Dweller", "Neighborhood Confidante", "Hope vs Order",
+  "Galactic Privateer", "Self-Care Specialist", "Inner Peace", "Zen Guru", "Werewolf Initiate"
+];
 
 function randomFrom(pool, exclude){
   const options = pool.filter(v => !exclude.includes(v));
