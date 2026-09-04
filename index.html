@@ -462,7 +462,20 @@
   .rules-body .detail-notes-view p:last-child{ margin-bottom: 0; }
   .rules-body .detail-notes-view ul{ margin: 0 0 12px; padding-left: 20px; }
   .rules-body .detail-notes-view li{ margin-bottom: 4px; }
-  #rules-textarea{ width: 100%; min-height: 360px; resize: vertical; }
+  #rules-textarea{
+    width: 100%;
+    min-height: 360px;
+    resize: vertical;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+  }
+  #rules-textarea:focus{ outline: 1px solid var(--accent); }
   .rules-edit-actions{ display:flex; gap: 10px; margin-top: 14px; }
   .family-tree{
     display:flex;
@@ -887,7 +900,7 @@
       <div class="rules-body">
         <div id="rules-view-content" class="detail-notes-view"></div>
         <div id="rules-edit-wrap" hidden>
-          <textarea id="rules-textarea" class="detail-notes-input" placeholder="Write your gameplay rules here. Supports **bold**, *italic*, and - bullet lists."></textarea>
+          <textarea id="rules-textarea" placeholder="Write your gameplay rules here. Supports **bold**, *italic*, and - bullet lists."></textarea>
           <div class="rules-edit-actions">
             <button class="primary-btn" id="rules-save-btn">Save</button>
             <button class="labeled-btn" id="rules-cancel-btn">Cancel</button>
