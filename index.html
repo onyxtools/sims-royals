@@ -2187,7 +2187,9 @@ function renderRealms(){
 
   visibleList.sort((a, b) => {
     if (realmSortMode === "members"){
-      const diff = a.members.length - b.members.length;
+      const aCount = a.members.filter(m => isRoyalFamilyTitle(m) && !isDeceasedSim(m)).length;
+      const bCount = b.members.filter(m => isRoyalFamilyTitle(m) && !isDeceasedSim(m)).length;
+      const diff = aCount - bCount;
       if (diff !== 0) return realmMembersDir === "desc" ? -diff : diff;
       return a.displayName.localeCompare(b.displayName);
     }
