@@ -675,6 +675,7 @@
   }
   .match-card:hover{ background: var(--bg-hover); transform: translateY(-2px); }
   .match-card .name{ font-weight:600; font-size:0.95rem; }
+  .match-card .badge{ margin-top: 6px; }
   .match-card .reason{ font-size: 0.75rem; margin-top:6px; color: var(--text-muted); }
   .selected-banner{
     background: var(--bg-elevated);
@@ -2924,6 +2925,7 @@ function renderMatchmaker(){
   grid.innerHTML = candidates.map(c => `
     <div class="match-card" data-marry="${c.id}">
       <div class="name">${escapeHtml(displayName(c))}</div>
+      ${c.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
       <div class="reason">${escapeHtml([c.dynasty, c.realm].filter(Boolean).join(", ") || "Eligible match")}</div>
     </div>`
   ).join("");
