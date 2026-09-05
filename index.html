@@ -425,18 +425,20 @@
   .not-recorded{ font-size: 0.7rem; font-style: italic; color: #5f5741; }
   .relcheck-pickers{
     display:flex;
+    align-items: flex-end;
     gap: 16px;
     max-width: 640px;
     margin-bottom: 28px;
   }
   .relcheck-pickers .field{ flex:1; }
+  .relcheck-pickers .labeled-btn{ flex-shrink:0; }
   .rc-search-wrap{ position:relative; }
   .rc-search-wrap input[type="text"]{
     width: 100%;
     background: var(--bg-elevated);
     border: 1px solid var(--border);
     color: var(--text);
-    padding: 10px 12px;
+    padding: 10px 34px 10px 12px;
     border-radius: 5px;
     font-size: 0.92rem;
   }
@@ -471,6 +473,7 @@
   #rc-result .detail-notes-view p:last-child{ margin-bottom: 0; }
   .rc-chain-line{ margin-bottom: 8px; line-height: 1.6; }
   .rc-chain-line strong{ color: var(--text); }
+  .rc-chain-heading{ font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
   .rules-header{
     display:flex;
     align-items:center;
@@ -980,6 +983,9 @@
           <label for="rc-person-a-input">Person A</label>
           <div class="rc-search-wrap">
             <input type="text" id="rc-person-a-input" placeholder="Type a name…" autocomplete="off" />
+            <button type="button" class="search-clear-btn" id="rc-person-a-clear" hidden aria-label="Clear">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            </button>
             <div class="rc-suggestions" id="rc-person-a-suggestions" hidden></div>
           </div>
         </div>
@@ -987,9 +993,13 @@
           <label for="rc-person-b-input">Person B</label>
           <div class="rc-search-wrap">
             <input type="text" id="rc-person-b-input" placeholder="Type a name…" autocomplete="off" />
+            <button type="button" class="search-clear-btn" id="rc-person-b-clear" hidden aria-label="Clear">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3l10 10M13 3L3 13"/></svg>
+            </button>
             <div class="rc-suggestions" id="rc-person-b-suggestions" hidden></div>
           </div>
         </div>
+        <button class="labeled-btn" id="rc-clear-all-btn">Clear</button>
       </div>
       <div id="rc-result"></div>
     </section>
@@ -2725,18 +2735,29 @@ function buildParentMap(){
 }
 
 // Distance (in parent-hops) from id up to each ancestor, id itself included at 0.
-function ancestorDistances(id, parentsOf, maxDepth = 4){
+// Walks the family graph using TWO edge types: a parent link costs 1 (an
+// actual generational step), a sibling link costs 2 (an implied trip up to
+// a shared parent and back down, since siblings occupy the same
+// generational slot even when that shared parent was never recorded). This
+// is what lets a relationship be found through a sibling connection at ANY
+// depth, not just between two people's own direct parents, e.g. two
+// grandparents being siblings of each other, which the old version missed.
+function weightedAncestorDistances(id, parentsOf, siblingsOf, maxDist){
   const dist = { [id]: 0 };
-  let frontier = [id];
-  for (let d = 1; d <= maxDepth; d++){
-    const next = [];
-    frontier.forEach(cur => {
-      (parentsOf[cur] || new Set()).forEach(p => {
-        if (!(p in dist)){ dist[p] = d; next.push(p); }
-      });
+  const queue = [[id, 0]];
+  while (queue.length){
+    queue.sort((a, b) => a[1] - b[1]);
+    const [cur, d] = queue.shift();
+    if (d > dist[cur]) continue;
+    if (d >= maxDist) continue;
+    (parentsOf[cur] || new Set()).forEach(p => {
+      const nd = d + 1;
+      if (!(p in dist) || nd < dist[p]){ dist[p] = nd; queue.push([p, nd]); }
     });
-    frontier = next;
-    if (!frontier.length) break;
+    (siblingsOf[cur] || new Set()).forEach(sib => {
+      const nd = d + 2;
+      if (!(sib in dist) || nd < dist[sib]){ dist[sib] = nd; queue.push([sib, nd]); }
+    });
   }
   return dist;
 }
@@ -2762,62 +2783,56 @@ function relationLabel(dSel, dCand, candidateGender){
   if (dSel === 1 && dCand === 2) return f ? "Niece" : "Nephew";
   if (dSel === 3 && dCand === 1) return f ? "Great-aunt" : "Great-uncle";
   if (dSel === 1 && dCand === 3) return f ? "Great-niece" : "Great-nephew";
+  if (dSel === 4 && dCand === 1) return f ? "Great-great-aunt" : "Great-great-uncle";
+  if (dSel === 1 && dCand === 4) return f ? "Great-great-niece" : "Great-great-nephew";
   if (dSel === 2 && dCand === 2) return "Cousin";
   if ((dSel === 2 && dCand === 3) || (dSel === 3 && dCand === 2)) return "Cousin (once removed)";
-  return null;
+  if ((dSel === 2 && dCand === 4) || (dSel === 4 && dCand === 2)) return "Cousin (twice removed)";
+  if (dSel === 3 && dCand === 3) return "Second cousin";
+  if ((dSel === 3 && dCand === 4) || (dSel === 4 && dCand === 3)) return "Second cousin (once removed)";
+  if (dSel === 4 && dCand === 4) return "Third cousin";
+  return "Related";
 }
 
-// Finds the closest common ancestor between two royals and labels the tie.
-// Falls back to the Siblings field for aunt/uncle, niece/nephew, and cousin
-// ties when one side's Father/Mother isn't on record, since a shared parent
-// isn't the only way we know two people are related. Returns null only if
-// nothing at all connects them through the data we have.
+// Finds the closest common ancestor between two royals (by real cost, not
+// just hop count, so a sibling-bridge several generations up still counts)
+// and labels the tie. Ties on cost are broken toward the more "balanced"
+// pair, since that usually means an actual shared ancestor was found rather
+// than a sibling standing in for one. Returns null only if nothing at all
+// connects them through the data we have.
 function describeRelation(selectedId, candidateId, parentsOf, siblingsOf, candidateGender){
-  const aDist = ancestorDistances(selectedId, parentsOf, 4);
-  const bDist = ancestorDistances(candidateId, parentsOf, 4);
+  const maxDist = 6;
+  const aDist = weightedAncestorDistances(selectedId, parentsOf, siblingsOf, maxDist);
+  const bDist = weightedAncestorDistances(candidateId, parentsOf, siblingsOf, maxDist);
   let best = null;
   Object.keys(aDist).forEach(anc => {
     if (anc in bDist){
       const dSel = aDist[anc], dCand = bDist[anc];
       if (dSel === 0 && dCand === 0) return;
       const sum = dSel + dCand;
-      if (!best || sum < best.sum) best = { dSel, dCand, sum };
+      const diff = Math.abs(dSel - dCand);
+      if (!best || sum < best.sum || (sum === best.sum && diff < best.diff)){
+        best = { dSel, dCand, sum, diff };
+      }
     }
   });
-  if (best) return relationLabel(best.dSel, best.dCand, candidateGender);
-
-  const f = candidateGender === "female";
-  const selParents = parentsOf[selectedId] || new Set();
-  const candParents = parentsOf[candidateId] || new Set();
-
-  // Aunt/uncle: candidate is a sibling of one of the selected royal's parents.
-  for (const p of selParents){
-    if (siblingsOf[p] && siblingsOf[p].has(candidateId)) return f ? "Aunt" : "Uncle";
-  }
-  // Niece/nephew: the selected royal is a sibling of one of the candidate's parents.
-  for (const p of candParents){
-    if (siblingsOf[p] && siblingsOf[p].has(selectedId)) return f ? "Niece" : "Nephew";
-  }
-  // Cousins: their parents are siblings of each other.
-  for (const p1 of selParents){
-    for (const p2 of candParents){
-      if (siblingsOf[p1] && siblingsOf[p1].has(p2)) return "Cousin";
-    }
-  }
-
-  return null;
+  if (!best) return null;
+  return relationLabel(best.dSel, best.dCand, candidateGender);
 }
+
 
 /* ---------------- Check Relationship (debug tool) ---------------- */
 let rcSelectedIdA = null;
 let rcSelectedIdB = null;
 
-function setupRcPicker(inputId, suggestionsId, onSelect){
+function setupRcPicker(inputId, suggestionsId, clearBtnId, onSelect){
   const input = document.getElementById(inputId);
   const suggestions = document.getElementById(suggestionsId);
+  const clearBtn = document.getElementById(clearBtnId);
 
   input.addEventListener("input", () => {
     onSelect(null);
+    clearBtn.hidden = !input.value;
     const term = input.value.trim().toLowerCase();
     if (!term){
       suggestions.hidden = true;
@@ -2840,13 +2855,34 @@ function setupRcPicker(inputId, suggestionsId, onSelect){
     const person = SIMS.find(s => s.id === btn.dataset.id);
     if (!person) return;
     input.value = displayName(person);
+    clearBtn.hidden = false;
     suggestions.hidden = true;
     onSelect(person.id);
   });
+
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    input.focus();
+    clearBtn.hidden = true;
+    suggestions.hidden = true;
+    onSelect(null);
+  });
 }
 
-setupRcPicker("rc-person-a-input", "rc-person-a-suggestions", id => { rcSelectedIdA = id; renderRelationshipResult(); });
-setupRcPicker("rc-person-b-input", "rc-person-b-suggestions", id => { rcSelectedIdB = id; renderRelationshipResult(); });
+setupRcPicker("rc-person-a-input", "rc-person-a-suggestions", "rc-person-a-clear", id => { rcSelectedIdA = id; renderRelationshipResult(); });
+setupRcPicker("rc-person-b-input", "rc-person-b-suggestions", "rc-person-b-clear", id => { rcSelectedIdB = id; renderRelationshipResult(); });
+
+document.getElementById("rc-clear-all-btn").addEventListener("click", () => {
+  document.getElementById("rc-person-a-input").value = "";
+  document.getElementById("rc-person-b-input").value = "";
+  document.getElementById("rc-person-a-clear").hidden = true;
+  document.getElementById("rc-person-b-clear").hidden = true;
+  document.getElementById("rc-person-a-suggestions").hidden = true;
+  document.getElementById("rc-person-b-suggestions").hidden = true;
+  rcSelectedIdA = null;
+  rcSelectedIdB = null;
+  renderRelationshipResult();
+});
 
 document.addEventListener("click", e => {
   if (!e.target.closest(".rc-search-wrap")){
@@ -2856,9 +2892,17 @@ document.addEventListener("click", e => {
 });
 
 function renderRelationshipChecker(){
-  // If a previously picked person got deleted, clear that selection.
-  if (rcSelectedIdA && !SIMS.some(s => s.id === rcSelectedIdA)) rcSelectedIdA = null;
-  if (rcSelectedIdB && !SIMS.some(s => s.id === rcSelectedIdB)) rcSelectedIdB = null;
+  // If a previously picked person got deleted, clear that selection entirely.
+  if (rcSelectedIdA && !SIMS.some(s => s.id === rcSelectedIdA)){
+    rcSelectedIdA = null;
+    document.getElementById("rc-person-a-input").value = "";
+    document.getElementById("rc-person-a-clear").hidden = true;
+  }
+  if (rcSelectedIdB && !SIMS.some(s => s.id === rcSelectedIdB)){
+    rcSelectedIdB = null;
+    document.getElementById("rc-person-b-input").value = "";
+    document.getElementById("rc-person-b-clear").hidden = true;
+  }
   renderRelationshipResult();
 }
 
@@ -2875,7 +2919,11 @@ function buildAncestorChainText(person, depth, maxDepth){
     return `${label}: <strong>${escapeHtml(typedName)}</strong> <em class="not-recorded">(no matching entry, check spelling)</em>`;
   };
 
+  const GEN_LABELS = ["Parents", "Grandparents", "Great-Grandparents", "Great-Great-Grandparents"];
   let html = `<div class="rc-chain-line" style="margin-left:${depth * 20}px;">`;
+  if (depth > 0){
+    html += `<div class="rc-chain-heading">${escapeHtml(displayName(person))}'s parents (${GEN_LABELS[depth] || "Ancestors"}):</div>`;
+  }
   html += resolvedLine("Father", person.father, father) + "<br>";
   html += resolvedLine("Mother", person.mother, mother);
   if (depth === 0){
