@@ -838,7 +838,11 @@
       <div class="view-head">
         <h2 id="dynasty-detail-heading">Dynasty</h2>
       </div>
-      <div class="toolbar" style="justify-content:flex-end;">
+      <div class="toolbar">
+        <label class="toolbar-toggle">
+          <input type="checkbox" id="dynasty-detail-hide-deceased" />
+          Hide deceased
+        </label>
         <div class="view-toggle noble-view-toggle">
           <button class="view-toggle-btn noble-view-btn active" data-mode="cards" aria-label="Card view" data-tooltip="Cards">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
@@ -881,7 +885,11 @@
       <div class="view-head">
         <h2 id="realm-detail-heading">Kingdom</h2>
       </div>
-      <div class="toolbar" style="justify-content:flex-end;">
+      <div class="toolbar">
+        <label class="toolbar-toggle">
+          <input type="checkbox" id="realm-detail-hide-deceased" />
+          Hide deceased
+        </label>
         <div class="view-toggle noble-view-toggle">
           <button class="view-toggle-btn noble-view-btn active" data-mode="cards" aria-label="Card view" data-tooltip="Cards">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
@@ -1923,8 +1931,9 @@ function getRealmGroups(){
     if (!groups[key]) groups[key] = { displayName: name, members: [] };
     groups[key].members.push(s);
   });
-  // A kingdom with nobody left alive doesn't show up anymore.
-  return Object.values(groups).filter(g => g.members.some(m => !isDeceasedSim(m)));
+  // A kingdom shows only while it still has at least one living King, Queen,
+  // Prince, or Princess, once that count hits zero, it drops off the list.
+  return Object.values(groups).filter(g => g.members.some(m => isRoyalFamilyTitle(m) && !isDeceasedSim(m)));
 }
 
 let dynastySortMode = "name";
@@ -2020,7 +2029,11 @@ function renderDynastyDetail(){
   }
   heading.textContent = selectedDynastyName;
 
-  const members = SIMS.filter(s => normalizeName(s.dynasty) === normalizeName(selectedDynastyName));
+  const hideDeceased = document.getElementById("dynasty-detail-hide-deceased").checked;
+  const members = SIMS.filter(s =>
+    normalizeName(s.dynasty) === normalizeName(selectedDynastyName) &&
+    (!hideDeceased || !isDeceasedSim(s))
+  );
   if (!members.length){
     container.innerHTML = `<div class="empty-state">No nobles in this dynasty anymore.</div>`;
     return;
@@ -2101,7 +2114,7 @@ function renderRealms(){
   }
 
   container.innerHTML = visibleList.map(g => {
-    const royalCount = g.members.filter(isRoyalFamilyTitle).length;
+    const royalCount = g.members.filter(m => isRoyalFamilyTitle(m) && !isDeceasedSim(m)).length;
     return `
     <div class="royal-card" tabindex="0" role="button" data-realm="${escapeHtml(g.displayName)}">
       <div class="name">${escapeHtml(g.displayName)}</div>
@@ -2127,9 +2140,11 @@ function renderRealmDetail(){
   }
   heading.textContent = selectedRealmName;
 
+  const hideDeceased = document.getElementById("realm-detail-hide-deceased").checked;
   const members = SIMS.filter(s =>
     normalizeName(s.realm) === normalizeName(selectedRealmName) &&
-    isRoyalFamilyTitle(s)
+    isRoyalFamilyTitle(s) &&
+    (!hideDeceased || !isDeceasedSim(s))
   );
   if (!members.length){
     container.innerHTML = `<div class="empty-state">No King, Queen, Prince, or Princess recorded for this kingdom yet.</div>`;
@@ -2166,6 +2181,9 @@ document.getElementById("hide-deceased-toggle").addEventListener("change", () =>
   visibleCount = PAGE_SIZE;
   renderRoster();
 });
+
+document.getElementById("dynasty-detail-hide-deceased").addEventListener("change", renderDynastyDetail);
+document.getElementById("realm-detail-hide-deceased").addEventListener("change", renderRealmDetail);
 
 document.getElementById("remove-all-btn").addEventListener("click", () => {
   document.getElementById("modal-body").innerHTML = `
