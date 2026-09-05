@@ -423,6 +423,18 @@
   .detail-field label{ display:block; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 3px; }
   .detail-field .value{ font-size: 0.78rem; color: var(--text); }
   .not-recorded{ font-size: 0.7rem; font-style: italic; color: #5f5741; }
+  .relcheck-pickers{
+    display:flex;
+    gap: 16px;
+    max-width: 640px;
+    margin-bottom: 28px;
+  }
+  .relcheck-pickers .field{ flex:1; }
+  #rc-result .detail-section{ max-width: 640px; }
+  #rc-result .detail-notes-view p{ margin: 0 0 10px; }
+  #rc-result .detail-notes-view p:last-child{ margin-bottom: 0; }
+  .rc-chain-line{ margin-bottom: 8px; line-height: 1.6; }
+  .rc-chain-line strong{ color: var(--text); }
   .rules-header{
     display:flex;
     align-items:center;
@@ -615,7 +627,7 @@
   }
 
   /* Matchmaker */
-  .match-layout{ display:grid; grid-template-columns: 280px 1fr; gap: 30px; align-items: start; }
+  .match-layout{ display:grid; grid-template-columns: 340px 1fr; gap: 30px; align-items: start; }
   .candidate-panel{
     position: sticky;
     top: 44px;
@@ -766,6 +778,7 @@
       <button class="nav-btn" data-view="dynasties">Dynasties <span class="nav-count" id="nav-dynasties-count"></span></button>
       <button class="nav-btn" data-view="realms">Kingdoms <span class="nav-count" id="nav-realms-count"></span></button>
       <button class="nav-btn" data-view="match">The Marriage Mart</button>
+      <button class="nav-btn" data-view="relcheck">Check Relationship</button>
       <button class="nav-btn" data-view="rules">Gameplay Rules</button>
     </nav>
   </aside>
@@ -918,6 +931,25 @@
         <p>Click anyone in the tree to re-center it on them. Shows up to three generations up and down.</p>
       </div>
       <div class="family-tree" id="family-tree-content"></div>
+    </section>
+
+    <!-- CHECK RELATIONSHIP -->
+    <section class="view" id="view-relcheck">
+      <div class="view-head">
+        <h2>Check Relationship</h2>
+        <p>Pick two nobles to see exactly what the app can trace between them, useful for double-checking why someone is or isn't eligible in the Marriage Mart.</p>
+      </div>
+      <div class="relcheck-pickers">
+        <div class="field">
+          <label for="rc-person-a">Person A</label>
+          <select id="rc-person-a"><option value="">Select a noble</option></select>
+        </div>
+        <div class="field">
+          <label for="rc-person-b">Person B</label>
+          <select id="rc-person-b"><option value="">Select a noble</option></select>
+        </div>
+      </div>
+      <div id="rc-result"></div>
     </section>
 
     <!-- RULES -->
@@ -1179,6 +1211,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
     if (btn.dataset.view === "match") renderMatchmaker();
     if (btn.dataset.view === "dynasties") renderDynasties();
     if (btn.dataset.view === "realms") renderRealms();
+    if (btn.dataset.view === "relcheck") renderRelationshipChecker();
   });
 });
 
@@ -1516,6 +1549,7 @@ onSnapshot(simsCol, snap => {
   if (document.getElementById("view-dynasty-detail").classList.contains("active")) renderDynastyDetail();
   if (document.getElementById("view-realms").classList.contains("active")) renderRealms();
   if (document.getElementById("view-realm-detail").classList.contains("active")) renderRealmDetail();
+  if (document.getElementById("view-relcheck").classList.contains("active")) renderRelationshipChecker();
   if (document.getElementById("view-family-tree").classList.contains("active")) renderFamilyTree();
 }, err => {
   console.error(err);
@@ -2731,6 +2765,112 @@ function describeRelation(selectedId, candidateId, parentsOf, siblingsOf, candid
 
   return null;
 }
+
+/* ---------------- Check Relationship (debug tool) ---------------- */
+function renderRelationshipChecker(){
+  const selectA = document.getElementById("rc-person-a");
+  const selectB = document.getElementById("rc-person-b");
+  const currentA = selectA.value;
+  const currentB = selectB.value;
+
+  const sorted = [...SIMS].sort((a, b) => displayName(a).localeCompare(displayName(b)));
+  const options = sorted.map(s => `<option value="${s.id}">${escapeHtml(displayName(s))}</option>`).join("");
+  selectA.innerHTML = `<option value="">Select a noble</option>` + options;
+  selectB.innerHTML = `<option value="">Select a noble</option>` + options;
+  if (sorted.some(s => s.id === currentA)) selectA.value = currentA;
+  if (sorted.some(s => s.id === currentB)) selectB.value = currentB;
+
+  renderRelationshipResult();
+}
+
+// Recursively renders a person's Father/Mother (and, at the top level, their
+// Siblings) so a broken link is visible at a glance: a name that doesn't
+// resolve to any entry gets flagged instead of just silently going nowhere.
+function buildAncestorChainText(person, depth, maxDepth){
+  if (!person || depth >= maxDepth) return "";
+  const { father, mother } = getParentsOf(person);
+
+  const resolvedLine = (label, typedName, match) => {
+    if (!typedName) return `${label}: <em class="not-recorded">Not recorded</em>`;
+    if (match) return `${label}: <strong>${escapeHtml(displayName(match))}</strong>`;
+    return `${label}: <strong>${escapeHtml(typedName)}</strong> <em class="not-recorded">(no matching entry, check spelling)</em>`;
+  };
+
+  let html = `<div class="rc-chain-line" style="margin-left:${depth * 20}px;">`;
+  html += resolvedLine("Father", person.father, father) + "<br>";
+  html += resolvedLine("Mother", person.mother, mother);
+  if (depth === 0){
+    const siblingNames = (person.siblings || "").split(",").map(n => n.trim()).filter(Boolean);
+    if (siblingNames.length){
+      const parts = siblingNames.map(n => {
+        const match = SIMS.find(s => normalizeName(fullName(s)) === normalizeName(n));
+        return match ? `<strong>${escapeHtml(n)}</strong>` : `<strong>${escapeHtml(n)}</strong> <em class="not-recorded">(no matching entry)</em>`;
+      });
+      html += `<br>Siblings: ${parts.join(", ")}`;
+    } else {
+      html += `<br>Siblings: <em class="not-recorded">Not recorded</em>`;
+    }
+  }
+  html += `</div>`;
+
+  if (father) html += buildAncestorChainText(father, depth + 1, maxDepth);
+  if (mother) html += buildAncestorChainText(mother, depth + 1, maxDepth);
+  return html;
+}
+
+function renderRelationshipResult(){
+  const result = document.getElementById("rc-result");
+  const idA = document.getElementById("rc-person-a").value;
+  const idB = document.getElementById("rc-person-b").value;
+
+  if (!idA || !idB){
+    result.innerHTML = `<div class="empty-state">Pick two nobles to check their relationship.</div>`;
+    return;
+  }
+  if (idA === idB){
+    result.innerHTML = `<div class="empty-state">Pick two different nobles.</div>`;
+    return;
+  }
+  const personA = SIMS.find(s => s.id === idA);
+  const personB = SIMS.find(s => s.id === idB);
+  if (!personA || !personB){
+    result.innerHTML = `<div class="empty-state">One of these nobles no longer exists.</div>`;
+    return;
+  }
+
+  const parentsOf = buildParentMap();
+  const siblingsOf = buildSiblingMap();
+
+  let relation = null;
+  if (siblingsOf[personA.id] && siblingsOf[personA.id].has(personB.id)){
+    relation = personB.gender === "female" ? "Sister" : "Brother";
+  } else {
+    relation = describeRelation(personA.id, personB.id, parentsOf, siblingsOf, personB.gender);
+  }
+
+  const resultText = relation
+    ? `<p><strong>${escapeHtml(displayName(personB))}</strong> is <strong>${escapeHtml(displayName(personA))}'s ${escapeHtml(relation)}</strong>. They'd be blocked from matching in the Marriage Mart.</p>`
+    : `<p>No blood relationship found between these two based on the data currently recorded. They'd be eligible to match (age and marital status permitting). If you expect them to be related, check the lineages below for a missing or misspelled link.</p>`;
+
+  result.innerHTML = `
+    <div class="detail-section">
+      <h3>Result</h3>
+      <div class="detail-notes-view">${resultText}</div>
+    </div>
+    <div class="detail-section">
+      <h3>${escapeHtml(displayName(personA))}'s recorded lineage</h3>
+      <div class="detail-notes-view">${buildAncestorChainText(personA, 0, 3)}</div>
+    </div>
+    <div class="detail-section">
+      <h3>${escapeHtml(displayName(personB))}'s recorded lineage</h3>
+      <div class="detail-notes-view">${buildAncestorChainText(personB, 0, 3)}</div>
+    </div>
+  `;
+}
+
+document.getElementById("rc-person-a").addEventListener("change", renderRelationshipResult);
+document.getElementById("rc-person-b").addEventListener("change", renderRelationshipResult);
+
 
 const CANDIDATE_PAGE_SIZE = 30;
 let candidateVisibleCount = CANDIDATE_PAGE_SIZE;
