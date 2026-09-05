@@ -430,6 +430,42 @@
     margin-bottom: 28px;
   }
   .relcheck-pickers .field{ flex:1; }
+  .rc-search-wrap{ position:relative; }
+  .rc-search-wrap input[type="text"]{
+    width: 100%;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 5px;
+    font-size: 0.92rem;
+  }
+  .rc-search-wrap input[type="text"]:focus{ outline: 1px solid var(--accent); }
+  .rc-suggestions{
+    position:absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    box-shadow: 0 10px 26px rgba(0,0,0,0.5);
+    z-index: 40;
+  }
+  .rc-suggestions[hidden]{ display:none; }
+  .rc-suggestion{
+    display:block;
+    width: 100%;
+    text-align:left;
+    background: none;
+    color: var(--text);
+    padding: 9px 13px;
+    font-size: 0.85rem;
+  }
+  .rc-suggestion:hover, .rc-suggestion.active{ background: var(--bg-hover); }
+  .rc-suggestion-empty{ padding: 9px 13px; font-size: 0.82rem; color: var(--text-muted); }
   #rc-result .detail-section{ max-width: 640px; }
   #rc-result .detail-notes-view p{ margin: 0 0 10px; }
   #rc-result .detail-notes-view p:last-child{ margin-bottom: 0; }
@@ -941,12 +977,18 @@
       </div>
       <div class="relcheck-pickers">
         <div class="field">
-          <label for="rc-person-a">Person A</label>
-          <select id="rc-person-a"><option value="">Select a noble</option></select>
+          <label for="rc-person-a-input">Person A</label>
+          <div class="rc-search-wrap">
+            <input type="text" id="rc-person-a-input" placeholder="Type a name…" autocomplete="off" />
+            <div class="rc-suggestions" id="rc-person-a-suggestions" hidden></div>
+          </div>
         </div>
         <div class="field">
-          <label for="rc-person-b">Person B</label>
-          <select id="rc-person-b"><option value="">Select a noble</option></select>
+          <label for="rc-person-b-input">Person B</label>
+          <div class="rc-search-wrap">
+            <input type="text" id="rc-person-b-input" placeholder="Type a name…" autocomplete="off" />
+            <div class="rc-suggestions" id="rc-person-b-suggestions" hidden></div>
+          </div>
         </div>
       </div>
       <div id="rc-result"></div>
@@ -2767,19 +2809,56 @@ function describeRelation(selectedId, candidateId, parentsOf, siblingsOf, candid
 }
 
 /* ---------------- Check Relationship (debug tool) ---------------- */
+let rcSelectedIdA = null;
+let rcSelectedIdB = null;
+
+function setupRcPicker(inputId, suggestionsId, onSelect){
+  const input = document.getElementById(inputId);
+  const suggestions = document.getElementById(suggestionsId);
+
+  input.addEventListener("input", () => {
+    onSelect(null);
+    const term = input.value.trim().toLowerCase();
+    if (!term){
+      suggestions.hidden = true;
+      return;
+    }
+    const matches = SIMS.filter(s => displayName(s).toLowerCase().includes(term)).slice(0, 8);
+    suggestions.innerHTML = matches.length
+      ? matches.map(s => `<button type="button" class="rc-suggestion" data-id="${s.id}">${escapeHtml(displayName(s))}</button>`).join("")
+      : `<div class="rc-suggestion-empty">No matches</div>`;
+    suggestions.hidden = false;
+  });
+
+  input.addEventListener("focus", () => {
+    if (input.value.trim()) input.dispatchEvent(new Event("input"));
+  });
+
+  suggestions.addEventListener("click", e => {
+    const btn = e.target.closest("[data-id]");
+    if (!btn) return;
+    const person = SIMS.find(s => s.id === btn.dataset.id);
+    if (!person) return;
+    input.value = displayName(person);
+    suggestions.hidden = true;
+    onSelect(person.id);
+  });
+}
+
+setupRcPicker("rc-person-a-input", "rc-person-a-suggestions", id => { rcSelectedIdA = id; renderRelationshipResult(); });
+setupRcPicker("rc-person-b-input", "rc-person-b-suggestions", id => { rcSelectedIdB = id; renderRelationshipResult(); });
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".rc-search-wrap")){
+    document.getElementById("rc-person-a-suggestions").hidden = true;
+    document.getElementById("rc-person-b-suggestions").hidden = true;
+  }
+});
+
 function renderRelationshipChecker(){
-  const selectA = document.getElementById("rc-person-a");
-  const selectB = document.getElementById("rc-person-b");
-  const currentA = selectA.value;
-  const currentB = selectB.value;
-
-  const sorted = [...SIMS].sort((a, b) => displayName(a).localeCompare(displayName(b)));
-  const options = sorted.map(s => `<option value="${s.id}">${escapeHtml(displayName(s))}</option>`).join("");
-  selectA.innerHTML = `<option value="">Select a noble</option>` + options;
-  selectB.innerHTML = `<option value="">Select a noble</option>` + options;
-  if (sorted.some(s => s.id === currentA)) selectA.value = currentA;
-  if (sorted.some(s => s.id === currentB)) selectB.value = currentB;
-
+  // If a previously picked person got deleted, clear that selection.
+  if (rcSelectedIdA && !SIMS.some(s => s.id === rcSelectedIdA)) rcSelectedIdA = null;
+  if (rcSelectedIdB && !SIMS.some(s => s.id === rcSelectedIdB)) rcSelectedIdB = null;
   renderRelationshipResult();
 }
 
@@ -2820,8 +2899,8 @@ function buildAncestorChainText(person, depth, maxDepth){
 
 function renderRelationshipResult(){
   const result = document.getElementById("rc-result");
-  const idA = document.getElementById("rc-person-a").value;
-  const idB = document.getElementById("rc-person-b").value;
+  const idA = rcSelectedIdA;
+  const idB = rcSelectedIdB;
 
   if (!idA || !idB){
     result.innerHTML = `<div class="empty-state">Pick two nobles to check their relationship.</div>`;
@@ -2868,8 +2947,6 @@ function renderRelationshipResult(){
   `;
 }
 
-document.getElementById("rc-person-a").addEventListener("change", renderRelationshipResult);
-document.getElementById("rc-person-b").addEventListener("change", renderRelationshipResult);
 
 
 const CANDIDATE_PAGE_SIZE = 30;
