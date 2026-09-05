@@ -1906,7 +1906,8 @@ function getDynastyGroups(){
     if (!groups[key]) groups[key] = { displayName: name, members: [] };
     groups[key].members.push(s);
   });
-  return Object.values(groups);
+  // A dynasty with nobody left alive doesn't show up anymore.
+  return Object.values(groups).filter(g => g.members.some(m => !isDeceasedSim(m)));
 }
 
 const ROYAL_TITLES = ["king", "queen", "prince", "princess"];
@@ -1922,7 +1923,8 @@ function getRealmGroups(){
     if (!groups[key]) groups[key] = { displayName: name, members: [] };
     groups[key].members.push(s);
   });
-  return Object.values(groups);
+  // A kingdom with nobody left alive doesn't show up anymore.
+  return Object.values(groups).filter(g => g.members.some(m => !isDeceasedSim(m)));
 }
 
 let dynastySortMode = "name";
