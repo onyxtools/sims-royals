@@ -2609,6 +2609,19 @@ async function cascadeSpouseSync(savedId, savedName, newSpouse, oldSpouse){
   return count;
 }
 
+// Marking a married royal Deceased automatically widows whoever they were
+// married to, so that never has to be done by hand. Keeps the Spouse field
+// pointing at them (still a meaningful historical fact), just flips the
+// living spouse's own Marital status to Widowed.
+async function cascadeWidowSync(savedId, isDeceased, spouseName){
+  if (!isDeceased || !spouseName) return 0;
+  const spouse = SIMS.find(s => s.id !== savedId && normalizeName(fullName(s)) === normalizeName(spouseName));
+  if (!spouse || isDeceasedSim(spouse)) return 0;
+  if (normalizeMaritalStatus(spouse.maritalStatus) === "Widowed") return 0;
+  await updateDoc(doc(db, "sims", spouse.id), { maritalStatus: "Widowed" });
+  return 1;
+}
+
 document.getElementById("sim-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errorBox = document.getElementById("name-duplicate-error");
@@ -2655,10 +2668,12 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       const renamedCount = await cascadeRename(editingId, editingOriginalName, fullName(payload));
       const siblingCount = await cascadeSiblingSync(editingId, fullName(payload), payload.siblings);
       const spouseCount = await cascadeSpouseSync(editingId, fullName(payload), payload.spouse, editingOriginalSpouse);
+      const widowedCount = await cascadeWidowSync(editingId, isDeceasedSim(payload), payload.spouse);
       const notes = [];
       if (renamedCount) notes.push(`updated ${renamedCount} other ${renamedCount === 1 ? 'entry' : 'entries'} that referenced the old name`);
       if (siblingCount) notes.push(`added them to ${siblingCount} sibling ${siblingCount === 1 ? 'entry' : 'entries'}`);
       if (spouseCount) notes.push(`updated their spouse's entry to match`);
+      if (widowedCount) notes.push(`marked their spouse as Widowed`);
       showToast(notes.length ? `Changes saved, ${notes.join(', and ')}.` : "Changes saved.");
       const returnTo = editReturnView;
       resetFormToAddMode();
@@ -2671,6 +2686,7 @@ document.getElementById("sim-form").addEventListener("submit", async (e) => {
       const docRef = await addDoc(simsCol, payload);
       const siblingCount = await cascadeSiblingSync(docRef.id, fullName(payload), payload.siblings);
       await cascadeSpouseSync(docRef.id, fullName(payload), payload.spouse, "");
+      await cascadeWidowSync(docRef.id, isDeceasedSim(payload), payload.spouse);
       e.target.reset();
       showToast(siblingCount
         ? `${displayName(payload)} added to the ledger, and added to ${siblingCount} sibling ${siblingCount === 1 ? 'entry' : 'entries'}.`
