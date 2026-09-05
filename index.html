@@ -656,6 +656,7 @@
   }
   .candidate-item:hover{ background: var(--bg-hover); }
   .candidate-item.selected{ border-color: var(--accent); background: var(--bg-hover); }
+  .candidate-badges{ display:flex; gap: 6px; flex-shrink:0; }
 
   .match-grid{
     display:grid;
@@ -2879,7 +2880,10 @@ function renderMatchmaker(){
     list.innerHTML = visibleSingles.map(s => `
       <div class="candidate-item ${s.id === selectedSimId ? 'selected' : ''}" data-pick="${s.id}">
         <span>${escapeHtml(displayName(s))}</span>
-        ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
+        <div class="candidate-badges">
+          <span class="badge age">${normalizeAge(s.age)}</span>
+          ${s.heirToThrone ? `<span class="badge throne">Throne Heir</span>` : ''}
+        </div>
       </div>
     `).join("") + `<div id="candidate-sentinel" style="height:1px;"></div>`;
 
